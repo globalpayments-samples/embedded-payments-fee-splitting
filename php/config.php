@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Configuration Endpoint
  *
  * This script provides configuration information for the client-side SDK,
- * including the public API key needed for tokenization.
+ * including GP API environment settings for Drop-In UI integration.
  *
  * PHP version 7.4 or higher
  *
@@ -29,11 +29,15 @@ try {
     // Set response content type to JSON
     header('Content-Type: application/json');
 
-    // Return public API key in JSON response
+    // Return GP API configuration for frontend
     echo json_encode([
         'success' => true,
         'data' => [
-            'publicApiKey' => $_ENV['PUBLIC_API_KEY'],
+            'environment' => $_ENV['GP_API_ENVIRONMENT'] ?? 'TEST',
+            'apiVersion' => '2021-03-22',
+            'channel' => $_ENV['CHANNEL'] ?? 'CardNotPresent',
+            'country' => $_ENV['COUNTRY'] ?? 'US',
+            'platformFeeRate' => floatval($_ENV['PLATFORM_FEE_RATE'] ?? 10.0)
         ],
     ]);
 } catch (Exception $e) {
