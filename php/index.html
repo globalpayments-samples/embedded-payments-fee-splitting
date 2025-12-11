@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global Payments - Developer Example</title>
+    <title>Marketplace Fee Splitting - Global Payments</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap" rel="stylesheet">
@@ -31,170 +31,86 @@
 
     <div class="gp-container">
         <!-- Page Title -->
-        <h1 class="gp-page-title">SDK Integration Examples</h1>
-        <p class="gp-page-subtitle">Explore comprehensive examples of Global Payments SDK implementations across different payment scenarios.</p>
+        <h1 class="gp-page-title">Marketplace Fee Splitting</h1>
+        <p class="gp-page-subtitle">Process payments with automatic fee distribution between platform and sellers using GP API.</p>
 
-        <!-- Tabs -->
-        <div class="gp-tabs">
-            <div class="gp-tab-list">
-                <button class="gp-tab-button active" data-tab="payment-form">Payment Form</button>
-                <button class="gp-tab-button" data-tab="tokenization">Tokenization</button>
-                <button class="gp-tab-button" data-tab="webhooks">Webhooks</button>
-                <button class="gp-tab-button" data-tab="recurring">Recurring Payments</button>
+        <!-- Main Content -->
+        <div class="gp-card">
+            <div class="gp-card-header">
+                <h2 class="gp-card-title">Marketplace Payment Form</h2>
+                <p class="gp-card-description">
+                    Secure payment processing with automatic fee splitting. Processing fee (2.9% + $0.30) and platform fee (5-25%) are automatically calculated.
+                </p>
             </div>
 
-            <!-- Payment Form Tab -->
-            <div class="gp-tab-content active" id="payment-form">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Credit Card Payment Form</h2>
-                        <p class="gp-card-description">
-                            Secure payment processing using Global Payments tokenization with client-side form validation.
-                        </p>
-                    </div>
-                    
-                    <form id="payment-form" class="gp-form" action="/process-payment" method="POST">
-                        <div class="gp-form-group">
-                            <label for="amount" class="gp-label">Amount ($):</label>
-                            <input type="number" id="amount" name="amount" class="gp-input" min="0.01" step="0.01" value="10.00" required>
-                        </div>
-                        
-                        <div class="gp-form-group">
-                            <label for="billing_zip" class="gp-label">Billing Zip Code:</label>
-                            <input type="text" id="billing_zip" name="billing_zip" class="gp-input" placeholder="12345" required>
-                        </div>
-
-                        <div class="gp-form-group">
-                            <label class="gp-label">Credit Card Information:</label>
-                            <div id="credit-card"></div>
-                        </div>
-
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Process Payment
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Tokenization Tab -->
-            <div class="gp-tab-content" id="tokenization">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Card Tokenization</h2>
-                        <p class="gp-card-description">
-                            Securely tokenize payment methods for future use without storing sensitive card data.
-                        </p>
-                    </div>
-                    
-                    <div class="gp-alert gp-alert-info">
-                        <strong>Info:</strong> Tokens can be stored securely and used for future transactions without handling raw card data.
+            <form id="marketplace-payment-form" class="gp-form">
+                <div class="gp-form-row">
+                    <div class="gp-form-group">
+                        <label for="seller_id" class="gp-label">Select Seller:</label>
+                        <select id="seller_id" name="seller_id" class="gp-select" required>
+                            <option value="">Loading sellers...</option>
+                        </select>
                     </div>
 
-                    <form id="tokenization-form" class="gp-form">
-                        <div class="gp-form-group">
-                            <label class="gp-label">Card Information for Tokenization:</label>
-                            <div id="credit-card-token"></div>
-                        </div>
-
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Generate Token
-                        </button>
-                    </form>
-
-                    <div id="token-result" class="gp-hidden">
-                        <h3 class="gp-card-title gp-mt-lg">Generated Token:</h3>
-                        <div class="gp-code-block" id="token-display"></div>
+                    <div class="gp-form-group">
+                        <label for="amount" class="gp-label">Amount ($):</label>
+                        <input type="number" id="amount" name="amount" class="gp-input" min="0.50" step="0.01" value="100.00" required>
                     </div>
                 </div>
-            </div>
 
-            <!-- Webhooks Tab -->
-            <div class="gp-tab-content" id="webhooks">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Webhook Integration</h2>
-                        <p class="gp-card-description">
-                            Configure and test webhook endpoints for real-time payment notifications.
-                        </p>
-                    </div>
-                    
-                    <div class="gp-code-block">
-// Example webhook handler
-app.post('/webhook', (req, res) => {
-    const signature = req.headers['x-gp-signature'];
-    const payload = req.body;
-    
-    // Verify webhook signature
-    if (verifySignature(payload, signature)) {
-        handlePaymentEvent(payload);
-        res.status(200).send('OK');
-    } else {
-        res.status(400).send('Invalid signature');
-    }
-});
-                    </div>
-
-                    <div class="gp-alert gp-alert-warning">
-                        <strong>Security:</strong> Always verify webhook signatures to ensure requests are from Global Payments.
-                    </div>
+                <div class="gp-form-group">
+                    <label for="platform_fee_rate" class="gp-label">Platform Fee Rate (%):</label>
+                    <input type="number" id="platform_fee_rate" name="platform_fee_rate" class="gp-input" min="5" max="25" step="0.1" value="10.0" required>
+                    <small class="gp-form-help">Rate must be between 5% and 25%</small>
                 </div>
-            </div>
 
-            <!-- Recurring Payments Tab -->
-            <div class="gp-tab-content" id="recurring">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Recurring Payments</h2>
-                        <p class="gp-card-description">
-                            Set up subscription billing and recurring payment schedules.
-                        </p>
-                    </div>
-                    
-                    <form id="recurring-form" class="gp-form">
-                        <div class="gp-form-row">
-                            <div class="gp-form-group">
-                                <label for="subscription-amount" class="gp-label">Monthly Amount ($):</label>
-                                <input type="number" id="subscription-amount" name="subscription-amount" class="gp-input" min="1.00" step="0.01" value="29.99" required>
-                            </div>
-                            
-                            <div class="gp-form-group">
-                                <label for="billing-cycle" class="gp-label">Billing Cycle:</label>
-                                <select id="billing-cycle" name="billing-cycle" class="gp-select" required>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="annually">Annually</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="gp-form-group">
-                            <label class="gp-label">Payment Method:</label>
-                            <div id="credit-card-recurring"></div>
-                        </div>
-
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Set Up Subscription
-                        </button>
-                    </form>
+                <div class="gp-form-group">
+                    <label class="gp-label">Credit Card Information:</label>
+                    <div id="credit-card"></div>
                 </div>
-            </div>
+
+                <!-- Fee Split Preview -->
+                <div id="fee-split-preview" class="gp-card" style="background-color: #f8f9fa; margin-top: 1.5rem;">
+                    <h3 class="gp-card-title" style="font-size: 1rem; margin-bottom: 1rem;">Fee Split Preview</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 0.5rem 0;">Transaction Amount:</td>
+                                <td style="padding: 0.5rem 0; text-align: right; font-weight: 600;" id="preview-amount">$100.00</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 0.5rem 0;">Processing Fee (2.9% + $0.30):</td>
+                                <td style="padding: 0.5rem 0; text-align: right;" id="preview-processing">$3.20</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 0.5rem 0;">Platform Fee (<span id="preview-platform-rate">10.0</span>%):</td>
+                                <td style="padding: 0.5rem 0; text-align: right;" id="preview-platform">$10.00</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 0.5rem 0; font-weight: 600;">Seller Payout:</td>
+                                <td style="padding: 0.5rem 0; text-align: right; font-weight: 600; color: #28a745;" id="preview-seller">$86.80</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="submit" class="gp-button gp-button-primary gp-button-full" id="submit-button">
+                    Process Payment
+                </button>
+            </form>
+
+            <!-- Result Display -->
+            <div id="result-container" class="gp-hidden" style="margin-top: 2rem;"></div>
         </div>
     </div>
 
     <!-- Footer -->
-    <!-- 
-        DEVELOPER NOTE: Update the following footer information to match your business:
-        - Company name and copyright year
-        - Update all links to point to your actual Terms of Service, Privacy Policy, and Refund Policy pages
-        - Refund Policy link is typically required by payment processor underwriting in addition to Terms and Privacy
-        - Ensure all linked policies are accessible and up-to-date before going live
-    -->
     <footer class="gp-footer">
         <div class="gp-container">
             <div class="gp-footer-content">
                 <div class="gp-footer-section">
                     <p class="gp-footer-copyright">
-                        © 2024 Your Company Name. All rights reserved.
+                        © 2024 Global Payments. All rights reserved.
                     </p>
                 </div>
                 <div class="gp-footer-section">
@@ -208,6 +124,283 @@ app.post('/webhook', (req, res) => {
         </div>
     </footer>
 
-    <script src="https://globalpayments-samples.github.io/js/script.js"></script>
+    <script src="https://js.globalpay.com/v1/globalpayments.js"></script>
+    <script>
+        let accessToken = null;
+        let cardForm = null;
+        let gpConfig = null;
+
+        // Fetch configuration
+        async function fetchConfig() {
+            try {
+                const response = await fetch('/config.php');
+                const data = await response.json();
+                if (data.success) {
+                    gpConfig = data.data;
+                    return gpConfig;
+                }
+                throw new Error('Failed to load configuration');
+            } catch (error) {
+                console.error('Config error:', error);
+                showError('Failed to load configuration');
+                throw error;
+            }
+        }
+
+        // Fetch access token
+        async function fetchAccessToken() {
+            try {
+                const response = await fetch('/get-access-token.php', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    accessToken = data.token;
+                    return accessToken;
+                }
+                throw new Error(data.error || 'Failed to get access token');
+            } catch (error) {
+                console.error('Access token error:', error);
+                showError('Failed to initialize payment form');
+                throw error;
+            }
+        }
+
+        // Fetch sellers
+        async function fetchSellers() {
+            try {
+                const response = await fetch('/get-sellers.php');
+                const data = await response.json();
+                if (data.success) {
+                    populateSellers(data.sellers);
+                }
+            } catch (error) {
+                console.error('Sellers error:', error);
+                showError('Failed to load sellers');
+            }
+        }
+
+        // Populate seller dropdown
+        function populateSellers(sellers) {
+            const select = document.getElementById('seller_id');
+            select.innerHTML = '<option value="">-- Select Seller --</option>';
+            sellers.forEach(seller => {
+                const option = document.createElement('option');
+                option.value = seller.id;
+                option.textContent = `${seller.name} - ${seller.description}`;
+                select.appendChild(option);
+            });
+        }
+
+        // Calculate fee split
+        function calculateFees() {
+            const amount = parseFloat(document.getElementById('amount').value) || 0;
+            const platformFeeRate = parseFloat(document.getElementById('platform_fee_rate').value) || 10;
+
+            const processingFee = Math.round(((amount * 0.029) + 0.30) * 100) / 100;
+            const platformFee = Math.round((amount * (platformFeeRate / 100)) * 100) / 100;
+            const sellerPayout = Math.round((amount - processingFee - platformFee) * 100) / 100;
+
+            // Update preview
+            document.getElementById('preview-amount').textContent = `$${amount.toFixed(2)}`;
+            document.getElementById('preview-processing').textContent = `$${processingFee.toFixed(2)}`;
+            document.getElementById('preview-platform-rate').textContent = platformFeeRate.toFixed(1);
+            document.getElementById('preview-platform').textContent = `$${platformFee.toFixed(2)}`;
+            document.getElementById('preview-seller').textContent = `$${sellerPayout.toFixed(2)}`;
+        }
+
+        // Initialize Drop-In UI
+        async function initializeDropIn() {
+            try {
+                const config = await fetchConfig();
+                const token = await fetchAccessToken();
+
+                // Configure GlobalPayments
+                GlobalPayments.configure({
+                    accessToken: token,
+                    env: config.environment.toLowerCase() === 'production' ? 'production' : 'sandbox',
+                    apiVersion: config.apiVersion || '2021-03-22'
+                });
+
+                // Create card form
+                cardForm = GlobalPayments.creditCard.form('#credit-card', {
+                    style: 'gp-default'
+                });
+
+                // Add event listeners
+                cardForm.on('token-success', handleTokenSuccess);
+                cardForm.on('token-error', handleTokenError);
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+            }
+        }
+
+        // Handle successful tokenization
+        function handleTokenSuccess(response) {
+            const paymentReference = response.paymentReference;
+            submitMarketplacePayment(paymentReference);
+        }
+
+        // Handle tokenization error
+        function handleTokenError(error) {
+            console.error('Tokenization error:', error);
+            showError('Card tokenization failed. Please check your card details.');
+            enableSubmitButton();
+        }
+
+        // Submit marketplace payment
+        async function submitMarketplacePayment(paymentReference) {
+            try {
+                const formData = new FormData();
+                formData.append('payment_reference', paymentReference);
+                formData.append('amount', document.getElementById('amount').value);
+                formData.append('seller_id', document.getElementById('seller_id').value);
+                formData.append('platform_fee_rate', document.getElementById('platform_fee_rate').value);
+
+                const response = await fetch('/process-marketplace-payment.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess(data);
+                } else {
+                    showError(data.message || 'Payment failed', data.error);
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                showError('Payment processing failed');
+            } finally {
+                enableSubmitButton();
+            }
+        }
+
+        // Show success message
+        function showSuccess(data) {
+            const container = document.getElementById('result-container');
+            const split = data.data.splitDetails;
+
+            container.innerHTML = `
+                <div class="gp-alert gp-alert-success">
+                    <strong>Success!</strong> ${data.message}
+                </div>
+                <div class="gp-card" style="background-color: #f8f9fa; margin-top: 1rem;">
+                    <h3 class="gp-card-title" style="font-size: 1rem; margin-bottom: 1rem;">Transaction Details</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tbody>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 0.5rem 0;">Transaction ID:</td>
+                                <td style="padding: 0.5rem 0; text-align: right; font-family: monospace;">${data.data.transactionId}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 0.5rem 0;">Seller:</td>
+                                <td style="padding: 0.5rem 0; text-align: right;">${split.sellerName}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 0.5rem 0;">Transaction Amount:</td>
+                                <td style="padding: 0.5rem 0; text-align: right; font-weight: 600;">$${split.amount.toFixed(2)}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 0.5rem 0;">Processing Fee (${split.processingFeeRate}% + $${split.processingFeeFixed}):</td>
+                                <td style="padding: 0.5rem 0; text-align: right;">$${split.processingFee.toFixed(2)}</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #dee2e6;">
+                                <td style="padding: 0.5rem 0;">Platform Fee (${split.platformFeeRate}%):</td>
+                                <td style="padding: 0.5rem 0; text-align: right;">$${split.platformFee.toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 0.5rem 0; font-weight: 600;">Seller Payout:</td>
+                                <td style="padding: 0.5rem 0; text-align: right; font-weight: 600; color: #28a745;">$${split.sellerPayout.toFixed(2)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            container.classList.remove('gp-hidden');
+
+            // Scroll to result
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Show error message
+        function showError(message, error = null) {
+            const container = document.getElementById('result-container');
+            let errorDetails = '';
+
+            if (error && error.details) {
+                errorDetails = `<p style="margin-top: 0.5rem; font-size: 0.9rem;">${error.details}</p>`;
+            }
+
+            container.innerHTML = `
+                <div class="gp-alert gp-alert-danger">
+                    <strong>Error:</strong> ${message}
+                    ${errorDetails}
+                </div>
+            `;
+            container.classList.remove('gp-hidden');
+
+            // Scroll to result
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Disable submit button
+        function disableSubmitButton() {
+            const button = document.getElementById('submit-button');
+            button.disabled = true;
+            button.textContent = 'Processing...';
+        }
+
+        // Enable submit button
+        function enableSubmitButton() {
+            const button = document.getElementById('submit-button');
+            button.disabled = false;
+            button.textContent = 'Process Payment';
+        }
+
+        // Form submission
+        document.getElementById('marketplace-payment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Hide previous results
+            document.getElementById('result-container').classList.add('gp-hidden');
+
+            // Validate seller selection
+            if (!document.getElementById('seller_id').value) {
+                showError('Please select a seller');
+                return;
+            }
+
+            // Validate amount
+            const amount = parseFloat(document.getElementById('amount').value);
+            if (amount < 0.50) {
+                showError('Amount must be at least $0.50');
+                return;
+            }
+
+            // Validate platform fee rate
+            const platformFeeRate = parseFloat(document.getElementById('platform_fee_rate').value);
+            if (platformFeeRate < 5 || platformFeeRate > 25) {
+                showError('Platform fee rate must be between 5% and 25%');
+                return;
+            }
+
+            disableSubmitButton();
+
+            // Trigger tokenization
+            cardForm.submit();
+        });
+
+        // Update fee split preview when inputs change
+        document.getElementById('amount').addEventListener('input', calculateFees);
+        document.getElementById('platform_fee_rate').addEventListener('input', calculateFees);
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeDropIn();
+            fetchSellers();
+            calculateFees();
+        });
+    </script>
 </body>
 </html>
