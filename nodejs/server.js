@@ -27,7 +27,6 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 8000;
 
-app.use(express.static('.')); // Serve static files
 app.use(express.urlencoded({ extended: true })); // Parse form data
 app.use(express.json()); // Parse JSON requests
 
@@ -178,6 +177,9 @@ app.post('/process-payment', async (req, res) => {
  * - app.post('/refund', ...)    // Process refund
  * - app.get('/transaction/:id', ...) // Get transaction details
  */
+
+// Serve static files - MUST come after API routes
+app.use(express.static('.'));
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {

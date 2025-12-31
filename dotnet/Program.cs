@@ -24,18 +24,19 @@ public class Program
         
         var app = builder.Build();
 
-        // Configure static file serving for the payment form
-        app.UseDefaultFiles();
-        app.UseStaticFiles();
-        
         // Configure the SDK on startup
         ConfigureGlobalPaymentsSDK();
 
+        // Configure API endpoints BEFORE static files
         ConfigureEndpoints(app);
-        
+
+        // Configure static file serving - MUST come after API endpoints
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+
         var port = System.Environment.GetEnvironmentVariable("PORT") ?? "8000";
         app.Urls.Add($"http://0.0.0.0:{port}");
-        
+
         app.Run();
     }
 
