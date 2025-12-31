@@ -1,6 +1,7 @@
 using GlobalPayments.Api;
 using GlobalPayments.Api.Entities;
 using GlobalPayments.Api.PaymentMethods;
+using GlobalPayments.Api.Services;
 using dotenv.net;
 
 namespace CardPaymentSample;
@@ -39,18 +40,64 @@ public class Program
     }
 
     /// <summary>
+    /// Gets an environment variable and strips inline comments
+    /// </summary>
+    /// <param name="key">The environment variable key</param>
+    /// <returns>The environment variable value with comments removed</returns>
+    private static string GetEnvVar(string key)
+    {
+        var value = System.Environment.GetEnvironmentVariable(key) ?? string.Empty;
+        var commentIndex = value.IndexOf('#');
+        if (commentIndex >= 0)
+        {
+            value = value[..commentIndex];
+        }
+        return value.Trim();
+    }
+
+    /// <summary>
+    /// Generates a random nonce for access token requests
+    /// </summary>
+    /// <returns>A hexadecimal string representing the nonce</returns>
+    private static string GenerateNonce()
+    {
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        var bytes = new byte[16];
+        rng.GetBytes(bytes);
+        return BitConverter.ToString(bytes).Replace("-", "").ToLower();
+    }
+
+    /// <summary>
+    /// Hashes the nonce and app key using SHA-512
+    /// </summary>
+    /// <param name="nonce">The nonce to hash</param>
+    /// <param name="appKey">The app key to include in the hash</param>
+    /// <returns>A hexadecimal string representing the SHA-512 hash</returns>
+    private static string HashSecret(string nonce, string appKey)
+    {
+        using var sha512 = System.Security.Cryptography.SHA512.Create();
+        var bytes = System.Text.Encoding.UTF8.GetBytes(nonce + appKey);
+        var hash = sha512.ComputeHash(bytes);
+        return BitConverter.ToString(hash).Replace("-", "").ToLower();
+    }
+
+    /// <summary>
     /// Configures the Global Payments SDK with necessary credentials and settings.
     /// This must be called before processing any payments.
     /// </summary>
     private static void ConfigureGlobalPaymentsSDK()
     {
-        ServicesContainer.ConfigureService(new PorticoConfig
+        var config = new GpApiConfig
         {
-            SecretApiKey = System.Environment.GetEnvironmentVariable("SECRET_API_KEY"),
-            DeveloperId = "000000",
-            VersionNumber = "0000",
-            ServiceUrl = "https://cert.api2.heartlandportico.com"
-        });
+            AppId = GetEnvVar("GP_APP_ID"),
+            AppKey = GetEnvVar("GP_APP_KEY"),
+            Environment = "production".Equals(GetEnvVar("GP_ENVIRONMENT"))
+                ? GlobalPayments.Api.Entities.Environment.PRODUCTION
+                : GlobalPayments.Api.Entities.Environment.TEST,
+            Channel = GlobalPayments.Api.Entities.Channel.CardNotPresent,
+            Country = "US"
+        };
+        ServicesContainer.ConfigureService(config);
     }
 
     /// <summary>
@@ -61,12 +108,58 @@ public class Program
     {
         // Configure HTTP endpoints
         app.MapGet("/config", () => Results.Ok(new
-        { 
+        {
             success = true,
             data = new {
-                publicApiKey = System.Environment.GetEnvironmentVariable("PUBLIC_API_KEY")
+                publicApiKey = GetEnvVar("PUBLIC_API_KEY")
             }
         }));
+
+        app.MapPost("/get-access-token", async () =>
+        {
+            try
+            {
+                var nonce = GenerateNonce();
+                var secret = HashSecret(nonce, GetEnvVar("GP_APP_KEY"));
+
+                var tokenRequest = new
+                {
+                    app_id = GetEnvVar("GP_APP_ID"),
+                    nonce = nonce,
+                    secret = secret,
+                    grant_type = "client_credentials",
+                    seconds_to_expire = 600,
+                    permissions = new[] { "PMT_POST_Create_Single" }
+                };
+
+                var apiEndpoint = "production".Equals(GetEnvVar("GP_ENVIRONMENT"))
+                    ? "https://apis.globalpay.com/ucp/accesstoken"
+                    : "https://apis.sandbox.globalpay.com/ucp/accesstoken";
+
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Add("X-GP-Version", "2021-03-22");
+
+                var content = new StringContent(
+                    System.Text.Json.JsonSerializer.Serialize(tokenRequest),
+                    System.Text.Encoding.UTF8,
+                    "application/json"
+                );
+
+                var response = await httpClient.PostAsync(apiEndpoint, content);
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(responseBody);
+
+                return Results.Ok(new
+                {
+                    success = true,
+                    token = data["token"].ToString()
+                });
+            }
+            catch (Exception ex)
+            {
+                return Results.StatusCode(500);
+            }
+        });
 
         ConfigurePaymentEndpoint(app);
     }
@@ -152,7 +245,7 @@ public class Program
                     .Execute();
 
                 // Verify transaction was successful
-                if (response.ResponseCode != "00")
+                if (response.ResponseCode != "00" && response.ResponseCode != "SUCCESS")
                 {
                     return Results.BadRequest(new {
                         success = false,
