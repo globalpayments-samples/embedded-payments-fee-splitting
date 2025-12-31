@@ -7,12 +7,15 @@
 
 import express from 'express';
 import * as dotenv from 'dotenv';
+import crypto from 'crypto';
 import {
     ServicesContainer,
-    PorticoConfig,
+    GpApiConfig,
     Address,
     CreditCardData,
-    ApiError
+    ApiError,
+    Channel,
+    Environment
 } from 'globalpayments-api';
 
 // Load environment variables from .env file
@@ -29,9 +32,14 @@ app.use(express.urlencoded({ extended: true })); // Parse form data
 app.use(express.json()); // Parse JSON requests
 
 // Configure Global Payments SDK with credentials and settings
-const config = new PorticoConfig();
-config.secretApiKey = process.env.SECRET_API_KEY;
-config.serviceUrl = 'https://cert.api2.heartlandportico.com'; // Use production URL for live transactions
+const config = new GpApiConfig();
+config.appId = process.env.GP_APP_ID;
+config.appKey = process.env.GP_APP_KEY;
+config.environment = process.env.GP_ENVIRONMENT === 'production'
+    ? 'production'
+    : 'test';
+config.channel = Channel.CardNotPresent;
+config.country = 'US';
 ServicesContainer.configureService(config);
 
 /**
@@ -57,6 +65,53 @@ app.get('/config', (req, res) => {
 });
 
 /**
+ * Access Token endpoint - generates restricted access tokens for frontend tokenization
+ * Used by Drop-In UI for secure client-side card tokenization
+ */
+app.post('/get-access-token', async (req, res) => {
+    try {
+        const nonce = crypto.randomBytes(16).toString('hex');
+        const secret = crypto.createHash('sha512')
+            .update(nonce + process.env.GP_APP_KEY)
+            .digest('hex');
+
+        const tokenRequest = {
+            app_id: process.env.GP_APP_ID,
+            nonce: nonce,
+            secret: secret,
+            grant_type: 'client_credentials',
+            seconds_to_expire: 600,
+            permissions: ['PMT_POST_Create_Single']
+        };
+
+        const apiEndpoint = process.env.GP_ENVIRONMENT === 'production'
+            ? 'https://apis.globalpay.com/ucp/accesstoken'
+            : 'https://apis.sandbox.globalpay.com/ucp/accesstoken';
+
+        const response = await fetch(apiEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-GP-Version': '2021-03-22'
+            },
+            body: JSON.stringify(tokenRequest)
+        });
+
+        const data = await response.json();
+
+        res.json({
+            success: true,
+            token: data.token
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
  * Example payment processing endpoint
  * Customize this endpoint for your specific payment flow
  */
@@ -76,35 +131,35 @@ app.post('/process-payment', async (req, res) => {
         const amount = req.body.amount || 10.00;
 
         // Add billing address if needed
+        const address = new Address();
         if (req.body.billing_zip) {
-            const address = new Address();
             address.postalCode = sanitizePostalCode(req.body.billing_zip);
-            
-            const response = await card.charge(amount)
-                .withAllowDuplicates(true)
-                .withCurrency('USD')
-                .withAddress(address)
-                .execute();
-                
-            // Handle response...
-            res.json({
-                success: true,
-                message: 'Payment processed successfully',
-                data: { transactionId: response.transactionId }
-            });
-        } else {
-            // Process without address
-            const response = await card.charge(amount)
-                .withAllowDuplicates(true)
-                .withCurrency('USD')
-                .execute();
-                
-            res.json({
-                success: true,
-                message: 'Payment processed successfully',
-                data: { transactionId: response.transactionId }
-            });
         }
+
+        const response = await card.charge(amount)
+            .withAllowDuplicates(true)
+            .withCurrency('USD')
+            .withAddress(address)
+            .execute();
+
+        // Verify transaction was successful
+        if (response.responseCode !== '00' && response.responseCode !== 'SUCCESS') {
+            res.status(400).json({
+                success: false,
+                message: 'Payment processing failed',
+                error: {
+                    code: 'PAYMENT_DECLINED',
+                    details: response.responseMessage
+                }
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            message: 'Payment processed successfully',
+            data: { transactionId: response.transactionId }
+        });
 
     } catch (error) {
         res.status(500).json({
