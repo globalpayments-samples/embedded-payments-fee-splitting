@@ -5,8 +5,9 @@ declare(strict_types=1);
 /**
  * Configuration Endpoint
  *
- * This script provides configuration information for the client-side SDK,
- * including GP API environment settings for Drop-In UI integration.
+ * This script provides the public API key for client-side tokenization.
+ * The public key is safe to expose to the browser as it has restricted
+ * permissions and can only create single-use payment tokens.
  *
  * PHP version 7.4 or higher
  *
@@ -29,17 +30,15 @@ try {
     // Set response content type to JSON
     header('Content-Type: application/json');
 
-    // Return GP API configuration for frontend
+    // Return public API key for client-side tokenization
+    // This key is safe to expose to the browser (restricted permissions)
     echo json_encode([
         'success' => true,
         'data' => [
-            'environment' => $_ENV['GP_API_ENVIRONMENT'] ?? 'TEST',
-            'apiVersion' => '2021-03-22',
-            'channel' => $_ENV['CHANNEL'] ?? 'CardNotPresent',
-            'country' => $_ENV['COUNTRY'] ?? 'US',
-            'platformFeeRate' => floatval($_ENV['PLATFORM_FEE_RATE'] ?? 10.0)
+            'publicApiKey' => $_ENV['GP_PUBLIC_API_KEY'],
         ],
     ]);
+    exit;
 } catch (Exception $e) {
     // Handle configuration errors
     http_response_code(500);
@@ -47,4 +46,5 @@ try {
         'success' => false,
         'message' => 'Error loading configuration: ' . $e->getMessage()
     ]);
+    exit;
 }

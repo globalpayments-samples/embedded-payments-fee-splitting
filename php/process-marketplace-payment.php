@@ -22,6 +22,7 @@ declare(strict_types=1);
 require_once 'vendor/autoload.php';
 
 use Dotenv\Dotenv;
+use GlobalPayments\Api\Entities\Address;
 use GlobalPayments\Api\Entities\Exceptions\ApiException;
 use GlobalPayments\Api\PaymentMethods\CreditCardData;
 use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
@@ -30,6 +31,7 @@ use GlobalPayments\Api\Entities\Enums\Environment;
 use GlobalPayments\Api\Entities\Enums\Channel;
 use MarketplaceFee\SellerManager;
 use MarketplaceFee\SplitCalculator;
+use MarketplaceFee\Utils;
 
 ini_set('display_errors', '0');
 
@@ -66,7 +68,7 @@ header('Content-Type: application/json');
 
 try {
     // Validate required fields
-    if (!isset($_POST['payment_reference'], $_POST['amount'], $_POST['seller_id'])) {
+    if (!isset($_POST['payment_token'], $_POST['billing_zip'], $_POST['amount'], $_POST['seller_id'])) {
         throw new ApiException('Missing required fields');
     }
 
@@ -84,6 +86,10 @@ try {
 
     $seller = SellerManager::getSellerById($sellerId);
 
+    // Create billing address for AVS verification
+    $address = new Address();
+    $address->postalCode = Utils::sanitizePostalCode($_POST['billing_zip']);
+
     // Calculate fee split
     $platformFeeRate = floatval($_POST['platform_fee_rate'] ?? 10.0);
     $calculator = new SplitCalculator($platformFeeRate);
@@ -93,13 +99,15 @@ try {
     $splitDetails['sellerId'] = $sellerId;
     $splitDetails['sellerName'] = $seller['name'];
 
-    // Initialize payment data using tokenized card from Drop-In UI
+    // Initialize payment data using tokenized card from frontend SDK
     $card = new CreditCardData();
-    $card->token = $_POST['payment_reference'];
+    $card->token = $_POST['payment_token'];
 
     // Process the payment transaction with specified amount
     $response = $card->charge($amount)
+        ->withAllowDuplicates(true)
         ->withCurrency('USD')
+        ->withAddress($address)
         ->execute();
 
     // Verify transaction was successful
@@ -128,6 +136,7 @@ try {
             'splitDetails' => $splitDetails
         ]
     ]);
+    exit;
 } catch (ApiException $e) {
     // Handle payment processing errors
     http_response_code(400);
@@ -139,6 +148,7 @@ try {
             'details' => $e->getMessage()
         ]
     ]);
+    exit;
 } catch (\Exception $e) {
     // Handle general errors
     http_response_code(500);
@@ -150,4 +160,5 @@ try {
             'details' => $e->getMessage()
         ]
     ]);
+    exit;
 }
