@@ -17,6 +17,9 @@ import {
     Channel,
     Environment
 } from 'globalpayments-api';
+import multer from 'multer';
+import SellerManager from './lib/SellerManager.js';
+import SplitCalculator from './lib/SplitCalculator.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -29,6 +32,10 @@ const port = process.env.PORT || 8000;
 
 app.use(express.urlencoded({ extended: true })); // Parse form data
 app.use(express.json()); // Parse JSON requests
+
+// Configure multer for multipart/form-data parsing
+// Use memory storage (no disk writes for payment data)
+const upload = multer();
 
 // Configure Global Payments SDK with credentials and settings
 const config = new GpApiConfig();
@@ -165,6 +172,98 @@ app.post('/process-payment', async (req, res) => {
             success: false,
             message: 'Payment processing failed',
             error: error.message
+        });
+    }
+});
+
+/**
+ * Marketplace payment processing endpoint with fee splitting
+ */
+app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
+    try {
+        const { payment_token, billing_zip, amount, seller_id, platform_fee_rate } = req.body;
+
+        // Validate required fields
+        if (!payment_token || !billing_zip || !amount || !seller_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
+            });
+        }
+
+        const amountNum = parseFloat(amount);
+
+        // Validate seller
+        if (!SellerManager.isValidSeller(seller_id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid seller selected'
+            });
+        }
+
+        const seller = SellerManager.getSellerById(seller_id);
+        const platformFeeRate = platform_fee_rate ? parseFloat(platform_fee_rate) : 10.0;
+
+        // Calculate split
+        const calculator = new SplitCalculator(platformFeeRate);
+        const splitDetails = calculator.calculateSplit(amountNum);
+        splitDetails.sellerId = seller_id;
+        splitDetails.sellerName = seller.name;
+
+        // Process payment
+        const card = new CreditCardData();
+        card.token = payment_token;
+
+        const address = new Address();
+        address.postalCode = sanitizePostalCode(billing_zip);
+
+        const response = await card.charge(amountNum)
+            .withAllowDuplicates(true)
+            .withCurrency('USD')
+            .withAddress(address)
+            .execute();
+
+        if (!response || (response.responseCode !== '00' && response.responseCode !== 'SUCCESS')) {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment processing failed',
+                error: {
+                    code: 'PAYMENT_DECLINED',
+                    details: response.responseMessage
+                }
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Payment successful! Transaction ID: ${response.transactionId}`,
+            data: {
+                transactionId: response.transactionId,
+                amount: amountNum,
+                splitDetails
+            }
+        });
+    } catch (error) {
+        // Handle SDK-specific payment errors
+        if (error instanceof ApiError || error.name === 'ApiError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment processing failed',
+                error: {
+                    code: 'API_ERROR',
+                    details: error.message
+                }
+            });
+        }
+
+        // Handle all other errors
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: {
+                code: 'SERVER_ERROR',
+                details: error.message
+            }
         });
     }
 });
