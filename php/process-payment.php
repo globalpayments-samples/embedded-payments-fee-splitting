@@ -24,8 +24,10 @@ use Dotenv\Dotenv;
 use GlobalPayments\Api\Entities\Address;
 use GlobalPayments\Api\Entities\Exceptions\ApiException;
 use GlobalPayments\Api\PaymentMethods\CreditCardData;
-use GlobalPayments\Api\ServiceConfigs\Gateways\PorticoConfig;
+use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
 use GlobalPayments\Api\ServicesContainer;
+use GlobalPayments\Api\Entities\Enums\Environment;
+use GlobalPayments\Api\Entities\Enums\Channel;
 
 ini_set('display_errors', '0');
 
@@ -42,12 +44,15 @@ function configureSdk(): void
     $dotenv = Dotenv::createImmutable(__DIR__);
     $dotenv->load();
 
-    $config = new PorticoConfig();
-    $config->secretApiKey = $_ENV['SECRET_API_KEY'];
-    $config->developerId = '000000';
-    $config->versionNumber = '0000';
-    $config->serviceUrl = 'https://cert.api2.heartlandportico.com';
-    
+    $config = new GpApiConfig();
+    $config->appId = $_ENV['GP_APP_ID'];
+    $config->appKey = $_ENV['GP_APP_KEY'];
+    $config->environment = ($_ENV['GP_ENVIRONMENT'] ?? 'sandbox') === 'production'
+        ? Environment::PRODUCTION
+        : Environment::TEST;
+    $config->channel = Channel::CardNotPresent;
+    $config->country = 'US';
+
     ServicesContainer::configureService($config);
 }
 
@@ -71,6 +76,9 @@ function sanitizePostalCode(?string $postalCode): string
 
 // Initialize SDK configuration
 configureSdk();
+
+// Set response content type to JSON
+header('Content-Type: application/json');
 
 try {
     // Validate required fields
@@ -100,7 +108,7 @@ try {
         ->execute();
     
     // Verify transaction was successful
-    if ($response->responseCode !== '00') {
+    if ($response->responseCode !== 'SUCCESS' && $response->responseCode !== '00') {
         http_response_code(400);
         echo json_encode([
             'success' => false,
@@ -121,6 +129,7 @@ try {
             'transactionId' => $response->transactionId
         ]
     ]);
+    exit;
 } catch (ApiException $e) {
     // Handle payment processing errors
     http_response_code(400);
@@ -132,4 +141,5 @@ try {
             'details' => $e->getMessage()
         ]
     ]);
+    exit;
 }
