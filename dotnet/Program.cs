@@ -3,6 +3,8 @@ using GlobalPayments.Api.Entities;
 using GlobalPayments.Api.PaymentMethods;
 using GlobalPayments.Api.Services;
 using dotenv.net;
+using MarketplaceFee.Services;
+using MarketplaceFee.Models;
 
 namespace CardPaymentSample;
 
@@ -163,6 +165,7 @@ public class Program
         });
 
         ConfigurePaymentEndpoint(app);
+        ConfigureMarketplaceEndpoint(app);
     }
 
     /// <summary>
@@ -268,6 +271,140 @@ public class Program
                     }
                 });
             } 
+            catch (ApiException ex)
+            {
+                // Handle payment processing errors
+                return Results.BadRequest(new {
+                    success = false,
+                    message = "Payment processing failed",
+                    error = new {
+                        code = "API_ERROR",
+                        details = ex.Message
+                    }
+                });
+            }
+        });
+    }
+
+    /// <summary>
+    /// Configures the marketplace payment processing endpoint with automatic fee splitting.
+    /// </summary>
+    /// <param name="app">The web application to configure</param>
+    private static void ConfigureMarketplaceEndpoint(WebApplication app)
+    {
+        app.MapPost("/process-marketplace-payment", async (HttpContext context) =>
+        {
+            // Parse form data from the request
+            var form = await context.Request.ReadFormAsync();
+            var token = form["payment_token"].ToString();
+            var billingZip = form["billing_zip"].ToString();
+            var amountStr = form["amount"].ToString();
+            var sellerId = form["seller_id"].ToString();
+            var platformFeeRateStr = form["platform_fee_rate"].ToString();
+
+            // Validate required fields
+            if (string.IsNullOrEmpty(token) ||
+                string.IsNullOrEmpty(billingZip) ||
+                string.IsNullOrEmpty(amountStr) ||
+                string.IsNullOrEmpty(sellerId))
+            {
+                return Results.BadRequest(new {
+                    success = false,
+                    message = "Missing required fields"
+                });
+            }
+
+            // Validate and parse amount
+            if (!decimal.TryParse(amountStr, out var amount) || amount < 0.50m)
+            {
+                return Results.BadRequest(new {
+                    success = false,
+                    message = "Amount must be at least $0.50"
+                });
+            }
+
+            // Validate seller
+            if (!SellerManager.IsValidSeller(sellerId))
+            {
+                return Results.BadRequest(new {
+                    success = false,
+                    message = "Invalid seller selected"
+                });
+            }
+
+            var seller = SellerManager.GetSellerById(sellerId);
+
+            // Parse platform fee rate (default to 10.0 if not provided)
+            if (!double.TryParse(platformFeeRateStr, out var platformFeeRate))
+            {
+                platformFeeRate = 10.0;
+            }
+
+            // Calculate fee split
+            var calculator = new SplitCalculator(platformFeeRate);
+            var splitDetails = calculator.CalculateSplit((double)amount);
+            splitDetails.SellerId = sellerId;
+            splitDetails.SellerName = seller.Name;
+
+            // Initialize payment data using tokenized card information
+            var card = new CreditCardData
+            {
+                Token = token
+            };
+
+            // Create billing address for AVS verification
+            var address = new Address
+            {
+                PostalCode = SanitizePostalCode(billingZip)
+            };
+
+            try
+            {
+                // Process the payment transaction
+                var response = card.Charge(amount)
+                    .WithAllowDuplicates(true)
+                    .WithCurrency("USD")
+                    .WithAddress(address)
+                    .Execute();
+
+                // Check for null response
+                if (response == null)
+                {
+                    return Results.BadRequest(new {
+                        success = false,
+                        message = "Payment processing failed",
+                        error = new {
+                            code = "NULL_RESPONSE",
+                            details = "Payment gateway returned null response"
+                        }
+                    });
+                }
+
+                // Verify transaction was successful (GP API returns 'SUCCESS' or '00')
+                if (response.ResponseCode != "00" && response.ResponseCode != "SUCCESS")
+                {
+                    return Results.BadRequest(new {
+                        success = false,
+                        message = "Payment processing failed",
+                        error = new {
+                            code = "PAYMENT_DECLINED",
+                            details = response.ResponseMessage
+                        }
+                    });
+                }
+
+                // Return success response with transaction ID and split details
+                return Results.Ok(new
+                {
+                    success = true,
+                    message = $"Payment successful! Transaction ID: {response.TransactionId}",
+                    data = new {
+                        transactionId = response.TransactionId,
+                        amount = amount,
+                        splitDetails = splitDetails
+                    }
+                });
+            }
             catch (ApiException ex)
             {
                 // Handle payment processing errors
