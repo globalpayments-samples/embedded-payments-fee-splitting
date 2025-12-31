@@ -35,7 +35,7 @@ This example demonstrates card payment processing using PHP and the Global Payme
    ```
    Or manually:
    ```bash
-   php -S localhost:8000
+   php -S localhost:8000 router.php
    ```
 
 ## Implementation Details
