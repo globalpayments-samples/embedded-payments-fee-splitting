@@ -31,158 +31,98 @@
 
     <div class="gp-container">
         <!-- Page Title -->
-        <h1 class="gp-page-title">SDK Integration Examples</h1>
-        <p class="gp-page-subtitle">Explore comprehensive examples of Global Payments SDK implementations across different payment scenarios.</p>
+        <h1 class="gp-page-title">Marketplace Fee Splitting Demo</h1>
+        <p class="gp-page-subtitle">Process payments with automatic fee splitting between platform and seller.</p>
 
-        <!-- Tabs -->
-        <div class="gp-tabs">
-            <div class="gp-tab-list">
-                <button class="gp-tab-button active" data-tab="payment-form">Payment Form</button>
-                <button class="gp-tab-button" data-tab="tokenization">Tokenization</button>
-                <button class="gp-tab-button" data-tab="webhooks">Webhooks</button>
-                <button class="gp-tab-button" data-tab="recurring">Recurring Payments</button>
-            </div>
-
-            <!-- Payment Form Tab -->
-            <div class="gp-tab-content active" id="payment-form">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Credit Card Payment Form</h2>
-                        <p class="gp-card-description">
-                            Secure payment processing using Global Payments tokenization with client-side form validation.
-                        </p>
-                    </div>
-                    
-                    <form id="payment-form" class="gp-form" action="/process-payment" method="POST">
-                        <div class="gp-form-group">
-                            <label for="amount" class="gp-label">Amount ($):</label>
-                            <input type="number" id="amount" name="amount" class="gp-input" min="0.01" step="0.01" value="10.00" required>
-                        </div>
-                        
-                        <div class="gp-form-group">
-                            <label for="billing_zip" class="gp-label">Billing Zip Code:</label>
-                            <input type="text" id="billing_zip" name="billing_zip" class="gp-input" placeholder="12345" required>
-                        </div>
-
-                        <div class="gp-form-group">
-                            <label class="gp-label">Credit Card Information:</label>
-                            <div id="credit-card"></div>
-                        </div>
-
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Process Payment
-                        </button>
-                    </form>
+        <!-- Payment Form Section -->
+        <div id="payment-form-section">
+            <div class="gp-card">
+                <div class="gp-card-header">
+                    <h2 class="gp-card-title">Marketplace Fee Splitting</h2>
+                    <p class="gp-card-description">
+                        Process payments with automatic fee splitting between platform and seller.
+                    </p>
                 </div>
-            </div>
 
-            <!-- Tokenization Tab -->
-            <div class="gp-tab-content" id="tokenization">
-                <div class="gp-card">
+                <form id="payment-form" class="gp-form" method="POST">
+                    <div class="gp-form-group">
+                        <label for="amount" class="gp-label">Transaction Amount ($):</label>
+                        <input type="number" id="amount" name="amount" class="gp-input" min="0.50" step="0.01" value="100.00" required>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <label for="seller_id" class="gp-label">Select Seller:</label>
+                        <select id="seller_id" name="seller_id" class="gp-select" required>
+                            <!-- Options populated by JavaScript with seller_001 as default -->
+                        </select>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <label for="platform_fee_rate" class="gp-label">Platform Fee (%):</label>
+                        <input type="number" id="platform_fee_rate" name="platform_fee_rate" class="gp-input" min="5" max="25" step="1" value="10" required>
+                        <small class="gp-help-text">Adjustable between 5-25%</small>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <label for="billing_zip" class="gp-label">Billing Zip Code:</label>
+                        <input type="text" id="billing_zip" name="billing_zip" class="gp-input" value="12345" placeholder="12345" required>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <label class="gp-label">Credit Card Information:</label>
+                        <div id="credit-card"></div>
+                    </div>
+                </form>
+
+                <!-- Split Result Section (initially hidden) -->
+                <div id="split-result" class="gp-mt-lg" style="display: none;">
                     <div class="gp-card-header">
-                        <h2 class="gp-card-title">Card Tokenization</h2>
-                        <p class="gp-card-description">
-                            Securely tokenize payment methods for future use without storing sensitive card data.
-                        </p>
-                    </div>
-                    
-                    <div class="gp-alert gp-alert-info">
-                        <strong>Info:</strong> Tokens can be stored securely and used for future transactions without handling raw card data.
+                        <h3 class="gp-card-title">✓ Payment Successful</h3>
+                        <p class="gp-text-muted">Transaction ID: <span id="txn-id"></span></p>
                     </div>
 
-                    <form id="tokenization-form" class="gp-form">
-                        <div class="gp-form-group">
-                            <label class="gp-label">Card Information for Tokenization:</label>
-                            <div id="credit-card-token"></div>
-                        </div>
+                    <table class="gp-table">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th style="text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Transaction Amount</strong></td>
+                                <td style="text-align: right;"><strong id="split-amount"></strong></td>
+                            </tr>
+                            <tr>
+                                <td>Processing Fee (<span id="proc-fee-rate"></span>% + $<span id="proc-fee-fixed"></span>)</td>
+                                <td style="text-align: right;" id="split-processing-fee"></td>
+                            </tr>
+                            <tr>
+                                <td>Platform Fee (<span id="split-platform-rate"></span>%)</td>
+                                <td style="text-align: right;" id="split-platform-fee"></td>
+                            </tr>
+                            <tr style="border-top: 2px solid #000;">
+                                <td>
+                                    <strong>Seller Payout</strong><br>
+                                    <small class="gp-text-muted">Paid to: <span id="split-seller-name"></span></small>
+                                </td>
+                                <td style="text-align: right; color: #28a745;">
+                                    <strong id="split-seller-payout"></strong>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
 
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Generate Token
-                        </button>
-                    </form>
-
-                    <div id="token-result" class="gp-hidden">
-                        <h3 class="gp-card-title gp-mt-lg">Generated Token:</h3>
-                        <div class="gp-code-block" id="token-display"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Webhooks Tab -->
-            <div class="gp-tab-content" id="webhooks">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Webhook Integration</h2>
-                        <p class="gp-card-description">
-                            Configure and test webhook endpoints for real-time payment notifications.
-                        </p>
-                    </div>
-                    
-                    <div class="gp-code-block">
-// Example webhook handler
-app.post('/webhook', (req, res) => {
-    const signature = req.headers['x-gp-signature'];
-    const payload = req.body;
-    
-    // Verify webhook signature
-    if (verifySignature(payload, signature)) {
-        handlePaymentEvent(payload);
-        res.status(200).send('OK');
-    } else {
-        res.status(400).send('Invalid signature');
-    }
-});
-                    </div>
-
-                    <div class="gp-alert gp-alert-warning">
-                        <strong>Security:</strong> Always verify webhook signatures to ensure requests are from Global Payments.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recurring Payments Tab -->
-            <div class="gp-tab-content" id="recurring">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Recurring Payments</h2>
-                        <p class="gp-card-description">
-                            Set up subscription billing and recurring payment schedules.
-                        </p>
-                    </div>
-                    
-                    <form id="recurring-form" class="gp-form">
-                        <div class="gp-form-row">
-                            <div class="gp-form-group">
-                                <label for="subscription-amount" class="gp-label">Monthly Amount ($):</label>
-                                <input type="number" id="subscription-amount" name="subscription-amount" class="gp-input" min="1.00" step="0.01" value="29.99" required>
-                            </div>
-                            
-                            <div class="gp-form-group">
-                                <label for="billing-cycle" class="gp-label">Billing Cycle:</label>
-                                <select id="billing-cycle" name="billing-cycle" class="gp-select" required>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="annually">Annually</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="gp-form-group">
-                            <label class="gp-label">Payment Method:</label>
-                            <div id="credit-card-recurring"></div>
-                        </div>
-
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Set Up Subscription
-                        </button>
-                    </form>
+                    <button type="button" class="gp-button gp-button-secondary gp-button-full gp-mt-md" onclick="resetPaymentForm()">
+                        Clear Results & Process Another Payment
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
-    <!-- 
+    <!--
         DEVELOPER NOTE: Update the following footer information to match your business:
         - Company name and copyright year
         - Update all links to point to your actual Terms of Service, Privacy Policy, and Refund Policy pages
@@ -208,6 +148,132 @@ app.post('/webhook', (req, res) => {
         </div>
     </footer>
 
-    <script src="https://globalpayments-samples.github.io/js/script.js"></script>
+    <script src="https://js.globalpay.com/v1/globalpayments.js"></script>
+    <script>
+// Load sellers into dropdown
+async function loadSellers() {
+    // Hardcoded sellers (matches mock-sellers.json)
+    const sellers = [
+        { id: 'seller_001', name: 'Tech Gadgets Store' },
+        { id: 'seller_002', name: 'Fashion Boutique' },
+        { id: 'seller_003', name: 'Home Goods Co' }
+    ];
+
+    const select = document.getElementById('seller_id');
+    sellers.forEach(seller => {
+        const option = document.createElement('option');
+        option.value = seller.id;
+        option.textContent = seller.name;
+
+        // Set Tech Gadgets Store as default
+        if (seller.id === 'seller_001') {
+            option.selected = true;
+        }
+
+        select.appendChild(option);
+    });
+}
+
+// Initialize payment form with GP SDK
+async function initializeMarketplaceForm() {
+    await loadSellers();
+
+    // Fetch config
+    const response = await fetch('/config');
+    const config = await response.json();
+
+    // Configure GlobalPayments SDK
+    GlobalPayments.configure({
+        publicApiKey: config.data.publicApiKey
+    });
+
+    // Create credit card form
+    const cardForm = GlobalPayments.creditCard.form('#credit-card', { style: 'gp-default' });
+
+    // Handle form submission
+    const form = document.getElementById('payment-form');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        // Tokenize card (GP SDK handles this automatically)
+    });
+
+    // Handle successful tokenization
+    cardForm.on('token-success', async (resp) => {
+        try {
+            // Collect form values
+            const formValues = {
+                payment_token: resp.paymentReference,
+                amount: document.getElementById('amount').value,
+                seller_id: document.getElementById('seller_id').value,
+                platform_fee_rate: document.getElementById('platform_fee_rate').value,
+                billing_zip: document.getElementById('billing_zip').value
+            };
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('payment_token', formValues.payment_token);
+            formData.append('amount', formValues.amount);
+            formData.append('seller_id', formValues.seller_id);
+            formData.append('platform_fee_rate', formValues.platform_fee_rate);
+            formData.append('billing_zip', formValues.billing_zip);
+
+            // Submit to marketplace endpoint
+            const paymentResponse = await fetch('/process-marketplace-payment', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await paymentResponse.json();
+
+            if (result.success) {
+                displaySplitResults(result.data);
+            } else {
+                alert('Payment failed: ' + result.message);
+            }
+        } catch (error) {
+            alert('Error processing payment: ' + error.message);
+        }
+    });
+
+    cardForm.on('token-error', (error) => {
+        alert('Card tokenization failed: ' + error.message);
+    });
+}
+
+// Display split results
+function displaySplitResults(data) {
+    const split = data.splitDetails;
+
+    // Keep form visible, show results below
+    document.getElementById('split-result').style.display = 'block';
+
+    // Populate results
+    document.getElementById('txn-id').textContent = data.transactionId;
+    document.getElementById('split-amount').textContent = '$' + split.amount.toFixed(2);
+    document.getElementById('proc-fee-rate').textContent = split.processingFeeRate.toFixed(1);
+    document.getElementById('proc-fee-fixed').textContent = split.processingFeeFixed.toFixed(2);
+    document.getElementById('split-processing-fee').textContent = '-$' + split.processingFee.toFixed(2);
+    document.getElementById('split-platform-rate').textContent = split.platformFeeRate.toFixed(0);
+    document.getElementById('split-platform-fee').textContent = '-$' + split.platformFee.toFixed(2);
+    document.getElementById('split-seller-name').textContent = split.sellerName;
+    document.getElementById('split-seller-payout').textContent = '$' + split.sellerPayout.toFixed(2);
+
+    // Scroll to results
+    document.getElementById('split-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Reset form for another payment
+function resetPaymentForm() {
+    document.getElementById('split-result').style.display = 'none';
+    document.getElementById('payment-form').reset();
+    document.getElementById('amount').value = '100.00';
+    document.getElementById('platform_fee_rate').value = '10';
+    document.getElementById('seller_id').value = 'seller_001'; // Reset to default
+    document.getElementById('billing_zip').value = '12345'; // Reset to default
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initializeMarketplaceForm);
+    </script>
 </body>
 </html>
