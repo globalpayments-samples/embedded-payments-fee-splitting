@@ -11,11 +11,16 @@ import com.global.api.paymentMethods.CreditCardData;
 import com.global.api.serviceConfigs.GpApiConfig;
 import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.json.JSONObject;
+import com.globalpayments.example.models.Seller;
+import com.globalpayments.example.models.SplitDetails;
+import com.globalpayments.example.services.SellerManager;
+import com.globalpayments.example.services.SplitCalculator;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -30,20 +35,22 @@ import java.security.SecureRandom;
 
 /**
  * Card Payment Processing Servlet
- * 
+ *
  * This servlet demonstrates card payment processing using the Global Payments SDK.
- * It provides endpoints for configuration and payment processing, handling 
+ * It provides endpoints for configuration and payment processing, handling
  * tokenized card data to ensure secure payment processing.
- * 
+ *
  * Endpoints:
  * - GET /config: Returns the public API key for client-side tokenization
  * - POST /process-payment: Processes card payments using tokenized data
- * 
+ * - POST /process-marketplace-payment: Processes marketplace payments with fee splitting
+ *
  * @author Global Payments
  * @version 1.0
  */
 
-@WebServlet(urlPatterns = {"/process-payment", "/config", "/get-access-token"})
+@MultipartConfig
+@WebServlet(urlPatterns = {"/process-payment", "/process-marketplace-payment", "/config", "/get-access-token"})
 public class ProcessPaymentServlet extends HttpServlet {
     
     private static final long serialVersionUID = 1L;
@@ -169,6 +176,12 @@ public class ProcessPaymentServlet extends HttpServlet {
 
         response.setContentType("application/json");
 
+        // Route to marketplace payment handler
+        if (request.getServletPath().equals("/process-marketplace-payment")) {
+            processMarketplacePayment(request, response);
+            return;
+        }
+
         // Handle access token generation
         if (request.getServletPath().equals("/get-access-token")) {
             try {
@@ -289,6 +302,108 @@ public class ProcessPaymentServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             String errorResponse = String.format(
                 "{\"success\":false,\"message\":\"Payment processing failed\",\"error\":{\"code\":\"API_ERROR\",\"details\":\"%s\"}}", 
+                e.getMessage()
+            );
+            response.getWriter().write(errorResponse);
+        }
+    }
+
+    /**
+     * Processes marketplace payments with fee splitting.
+     *
+     * @param request The HTTP request containing payment and seller details
+     * @param response The HTTP response
+     * @throws ServletException If there's an error in servlet processing
+     * @throws IOException If there's an I/O error
+     */
+    private void processMarketplacePayment(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setContentType("application/json");
+
+        try {
+            // Extract parameters
+            String token = request.getParameter("payment_token");
+            String zip = request.getParameter("billing_zip");
+            String amountStr = request.getParameter("amount");
+            String sellerId = request.getParameter("seller_id");
+            String feeRateStr = request.getParameter("platform_fee_rate");
+
+            // Enhanced validation - check for both null AND empty strings
+            boolean hasToken = token != null && !token.trim().isEmpty();
+            boolean hasZip = zip != null && !zip.trim().isEmpty();
+            boolean hasAmount = amountStr != null && !amountStr.trim().isEmpty();
+            boolean hasSellerId = sellerId != null && !sellerId.trim().isEmpty();
+
+            if (!hasToken || !hasZip || !hasAmount || !hasSellerId) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().write("{\"success\":false,\"message\":\"Missing required fields\"}");
+                return;
+            }
+
+            BigDecimal amount = new BigDecimal(amountStr);
+
+            // Validate seller
+            if (!SellerManager.isValidSeller(sellerId)) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().write("{\"success\":false,\"message\":\"Invalid seller selected\"}");
+                return;
+            }
+
+            Seller seller = SellerManager.getSellerById(sellerId);
+            double platformFeeRate = feeRateStr != null ? Double.parseDouble(feeRateStr) : 10.0;
+
+            // Calculate split
+            SplitCalculator calculator = new SplitCalculator(platformFeeRate);
+            SplitDetails splitDetails = calculator.calculateSplit(amount.doubleValue());
+            splitDetails.setSellerId(sellerId);
+            splitDetails.setSellerName(seller.getName());
+
+            // Process payment
+            CreditCardData card = new CreditCardData();
+            card.setToken(token);
+
+            Address address = new Address();
+            address.setPostalCode(sanitizePostalCode(zip));
+
+            Transaction transaction = card.charge(amount)
+                    .withAllowDuplicates(true)
+                    .withCurrency("USD")
+                    .withAddress(address)
+                    .execute();
+
+            if (!"00".equals(transaction.getResponseCode()) && !"SUCCESS".equals(transaction.getResponseCode())) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                String errorResponse = String.format(
+                    "{\"success\":false,\"message\":\"Payment processing failed\",\"error\":{\"code\":\"PAYMENT_DECLINED\",\"details\":\"%s\"}}",
+                    transaction.getResponseMessage()
+                );
+                response.getWriter().write(errorResponse);
+                return;
+            }
+
+            // Return success response with split details
+            String successResponse = String.format(
+                "{\"success\":true,\"message\":\"Payment successful! Transaction ID: %s\",\"data\":{\"transactionId\":\"%s\",\"amount\":%s,\"splitDetails\":{\"amount\":%.2f,\"processingFee\":%.2f,\"processingFeeRate\":%.2f,\"processingFeeFixed\":%.2f,\"platformFee\":%.2f,\"platformFeeRate\":%.2f,\"sellerPayout\":%.2f,\"sellerId\":\"%s\",\"sellerName\":\"%s\"}}}",
+                transaction.getTransactionId(),
+                transaction.getTransactionId(),
+                amountStr,
+                splitDetails.getAmount(),
+                splitDetails.getProcessingFee(),
+                splitDetails.getProcessingFeeRate(),
+                splitDetails.getProcessingFeeFixed(),
+                splitDetails.getPlatformFee(),
+                splitDetails.getPlatformFeeRate(),
+                splitDetails.getSellerPayout(),
+                splitDetails.getSellerId(),
+                splitDetails.getSellerName()
+            );
+            response.getWriter().write(successResponse);
+
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            String errorResponse = String.format(
+                "{\"success\":false,\"message\":\"Internal server error\",\"error\":{\"code\":\"SERVER_ERROR\",\"details\":\"%s\"}}",
                 e.getMessage()
             );
             response.getWriter().write(errorResponse);
