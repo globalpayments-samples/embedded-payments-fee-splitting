@@ -63,6 +63,15 @@ function configureSdk(): void
 // Initialize SDK configuration
 configureSdk();
 
+// DEBUG: Log credential verification (REMOVE IN PRODUCTION)
+error_log('=== GP API Configuration Debug ===');
+error_log('APP_ID loaded: ' . (isset($_ENV['GP_APP_ID']) ? 'YES' : 'NO'));
+error_log('APP_ID value: ' . ($_ENV['GP_APP_ID'] ?? 'NOT_SET'));
+error_log('APP_KEY loaded: ' . (isset($_ENV['GP_APP_KEY']) ? 'YES' : 'NO'));
+error_log('APP_KEY length: ' . (isset($_ENV['GP_APP_KEY']) ? strlen($_ENV['GP_APP_KEY']) : 0));
+error_log('Environment: ' . ($_ENV['GP_API_ENVIRONMENT'] ?? 'NOT_SET'));
+error_log('==================================');
+
 // Set response content type to JSON
 header('Content-Type: application/json');
 
@@ -138,6 +147,19 @@ try {
     ]);
     exit;
 } catch (ApiException $e) {
+    // Log detailed error information
+    error_log('=== Payment Processing Error ===');
+    error_log('Error Message: ' . $e->getMessage());
+    error_log('Error Code: ' . $e->getCode());
+    error_log('Request Data: ' . json_encode([
+        'amount' => $_POST['amount'] ?? 'missing',
+        'seller_id' => $_POST['seller_id'] ?? 'missing',
+        'token_present' => isset($_POST['payment_token']),
+        'token_prefix' => isset($_POST['payment_token']) ? substr($_POST['payment_token'], 0, 10) : 'N/A',
+    ]));
+    error_log('Stack Trace: ' . $e->getTraceAsString());
+    error_log('===============================');
+
     // Handle payment processing errors
     http_response_code(400);
     echo json_encode([
@@ -145,11 +167,21 @@ try {
         'message' => 'Payment processing failed',
         'error' => [
             'code' => 'API_ERROR',
-            'details' => $e->getMessage()
+            'details' => $e->getMessage(),
+            'timestamp' => date('Y-m-d H:i:s')
         ]
     ]);
     exit;
 } catch (\Exception $e) {
+    // Log general error information
+    error_log('=== General Server Error ===');
+    error_log('Error Type: ' . get_class($e));
+    error_log('Error Message: ' . $e->getMessage());
+    error_log('Error Code: ' . $e->getCode());
+    error_log('File: ' . $e->getFile() . ':' . $e->getLine());
+    error_log('Stack Trace: ' . $e->getTraceAsString());
+    error_log('==========================');
+
     // Handle general errors
     http_response_code(500);
     echo json_encode([
@@ -157,7 +189,8 @@ try {
         'message' => 'Internal server error',
         'error' => [
             'code' => 'SERVER_ERROR',
-            'details' => $e->getMessage()
+            'details' => $e->getMessage(),
+            'timestamp' => date('Y-m-d H:i:s')
         ]
     ]);
     exit;
