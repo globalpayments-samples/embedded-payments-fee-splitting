@@ -174,21 +174,62 @@ async function loadSellers() {
     });
 }
 
+// Global variable to store access token and card form
+let accessToken = null;
+let cardForm = null;
+let tokenRefreshInterval = null;
+
+// Fetch and configure access token for Drop-in UI
+async function refreshAccessToken() {
+    try {
+        const tokenResponse = await fetch('/get-access-token', { method: 'POST' });
+        const tokenData = await tokenResponse.json();
+
+        if (!tokenData.success || !tokenData.token) {
+            throw new Error('Failed to fetch access token');
+        }
+
+        accessToken = tokenData.token;
+        const environment = tokenData.environment || 'sandbox';  // Default to sandbox if not provided
+
+        // Configure GlobalPayments SDK with access token (Drop-in UI approach)
+        GlobalPayments.configure({
+            accessToken: accessToken,
+            apiVersion: '2021-03-22',
+            env: environment  // Dynamic environment from backend
+        });
+
+        console.log(`Access token configured successfully (${environment} environment)`);
+    } catch (error) {
+        console.error('Error refreshing access token:', error);
+        throw error;
+    }
+}
+
 // Initialize payment form with GP SDK
 async function initializeMarketplaceForm() {
     await loadSellers();
 
-    // Fetch config
-    const response = await fetch('/config');
-    const config = await response.json();
+    // Fetch and configure access token
+    await refreshAccessToken();
 
-    // Configure GlobalPayments SDK
-    GlobalPayments.configure({
-        publicApiKey: config.data.publicApiKey
+    // Set up token auto-refresh every 8 minutes (before 10-minute expiry)
+    tokenRefreshInterval = setInterval(async () => {
+        try {
+            await refreshAccessToken();
+            console.log('Access token auto-refreshed');
+        } catch (error) {
+            console.error('Failed to auto-refresh access token:', error);
+        }
+    }, 8 * 60 * 1000);  // 8 minutes in milliseconds
+
+    // Create credit card form with enhanced Drop-in UI features
+    cardForm = GlobalPayments.creditCard.form('#credit-card', {
+        style: 'gp-default',
+        requireCardHolderName: true,
+        fieldValidation: { enabled: true },
+        allowedCardTypes: ['visa', 'mastercard', 'amex', 'discover']
     });
-
-    // Create credit card form
-    const cardForm = GlobalPayments.creditCard.form('#credit-card', { style: 'gp-default' });
 
     // Handle form submission
     const form = document.getElementById('payment-form');

@@ -152,10 +152,13 @@ public class Program
                 var responseBody = await response.Content.ReadAsStringAsync();
                 var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(responseBody);
 
+                var environment = "production".Equals(GetEnvVar("GP_ENVIRONMENT")) ? "production" : "sandbox";
+
                 return Results.Ok(new
                 {
                     success = true,
-                    token = data["token"].ToString()
+                    token = data["token"].ToString(),
+                    environment = environment
                 });
             }
             catch (Exception ex)

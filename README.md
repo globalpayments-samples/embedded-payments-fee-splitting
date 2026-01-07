@@ -14,10 +14,64 @@ This starter template provides a customizable foundation for Global Payments SDK
 ## Template Features
 
 - **SDK Configuration** - Basic setup with environment variables
-- **Placeholder Endpoints** - Ready-to-customize API endpoints  
+- **Placeholder Endpoints** - Ready-to-customize API endpoints
 - **Error Handling** - Basic error handling structure
 - **Client Integration** - HTML form with hosted fields tokenization
 - **Multiple Languages** - Consistent structure across all implementations
+- **Drop-in UI Support** - Access token-based authentication with automatic refresh
+
+## Drop-in UI Implementation
+
+This template uses the **Drop-in UI** approach with access token-based authentication for enhanced security.
+
+### Key Features
+
+- **Access Token Authentication** - Uses temporary, restricted access tokens instead of static public API keys
+- **Automatic Token Refresh** - Tokens auto-refresh every 8 minutes (before 10-minute expiry)
+- **Enhanced Security** - Restricted permissions (`PMT_POST_Create_Single`) limit token capabilities
+- **Dynamic Environment** - Automatically configures sandbox/production mode based on backend settings (.NET only)
+- **Enhanced Form Features** - Includes cardholder name requirement, field validation, and card type restrictions
+
+### Implementation Details
+
+**Frontend (All Implementations):**
+- Fetches access token from `/get-access-token` endpoint (POST request)
+- Configures Global Payments SDK with `accessToken`, `apiVersion: '2021-03-22'`, and `env`
+- Implements token refresh every 8 minutes via `setInterval`
+- Enhanced card form with `requireCardHolderName`, `fieldValidation`, and `allowedCardTypes`
+
+**Backend Endpoints:**
+- `GET /config` - Returns public API key (maintained for backward compatibility)
+- `POST /get-access-token` - Generates restricted access token for client-side tokenization
+
+**Token Generation Process:**
+1. Generate cryptographic nonce
+2. Hash with SHA512 (nonce + app key)
+3. Request token from Global Payments with `PMT_POST_Create_Single` permission
+4. Return token with 10-minute expiration
+
+### Migration from Public API Key
+
+Previous implementations used:
+```javascript
+GlobalPayments.configure({ publicApiKey: config.data.publicApiKey });
+```
+
+New Drop-in UI approach uses:
+```javascript
+GlobalPayments.configure({
+    accessToken: tokenData.token,
+    apiVersion: '2021-03-22',
+    env: 'sandbox'  // or 'production'
+});
+```
+
+### Implementations Updated
+
+- ✅ **Node.js** - Full Drop-in UI with token refresh
+- ✅ **.NET** - Full Drop-in UI with dynamic environment detection
+- ✅ **Java** - Full Drop-in UI with token refresh
+- ⚠️ **PHP** - Not updated (kept for backward compatibility examples)
 
 ## Customization Options
 
