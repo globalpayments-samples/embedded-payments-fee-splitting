@@ -77,7 +77,8 @@ header('Content-Type: application/json');
 
 try {
     // Validate required fields
-    if (!isset($_POST['payment_token'], $_POST['billing_zip'], $_POST['amount'], $_POST['seller_id'])) {
+    if (!isset($_POST['card_name'], $_POST['card_number'], $_POST['card_expiry'], $_POST['card_cvv'],
+               $_POST['billing_zip'], $_POST['amount'], $_POST['seller_id'])) {
         throw new ApiException('Missing required fields');
     }
 
@@ -108,13 +109,25 @@ try {
     $splitDetails['sellerId'] = $sellerId;
     $splitDetails['sellerName'] = $seller['name'];
 
-    // Initialize payment data using tokenized card from frontend SDK
+    // Parse expiry date (MM/YY format)
+    $expiryParts = explode('/', $_POST['card_expiry']);
+    if (count($expiryParts) !== 2) {
+        throw new ApiException('Invalid expiry date format. Use MM/YY');
+    }
+
+    $expiryMonth = str_pad($expiryParts[0], 2, '0', STR_PAD_LEFT);
+    $expiryYear = '20' . $expiryParts[1]; // Convert YY to YYYY
+
+    // Initialize payment data with card details
     $card = new CreditCardData();
-    $card->token = $_POST['payment_token'];
+    $card->cardHolderName = $_POST['card_name'];
+    $card->number = str_replace(' ', '', $_POST['card_number']);
+    $card->expMonth = $expiryMonth;
+    $card->expYear = $expiryYear;
+    $card->cvn = $_POST['card_cvv'];
 
     // Process the payment transaction with specified amount
     $response = $card->charge($amount)
-        ->withAllowDuplicates(true)
         ->withCurrency('USD')
         ->withAddress($address)
         ->execute();
@@ -154,8 +167,9 @@ try {
     error_log('Request Data: ' . json_encode([
         'amount' => $_POST['amount'] ?? 'missing',
         'seller_id' => $_POST['seller_id'] ?? 'missing',
-        'token_present' => isset($_POST['payment_token']),
-        'token_prefix' => isset($_POST['payment_token']) ? substr($_POST['payment_token'], 0, 10) : 'N/A',
+        'card_name_present' => isset($_POST['card_name']),
+        'card_number_present' => isset($_POST['card_number']),
+        'card_bin' => isset($_POST['card_number']) ? substr($_POST['card_number'], 0, 6) : 'N/A',
     ]));
     error_log('Stack Trace: ' . $e->getTraceAsString());
     error_log('===============================');
