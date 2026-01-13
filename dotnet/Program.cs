@@ -58,31 +58,6 @@ public class Program
         return value.Trim();
     }
 
-    /// <summary>
-    /// Generates a random nonce for access token requests
-    /// </summary>
-    /// <returns>A hexadecimal string representing the nonce</returns>
-    private static string GenerateNonce()
-    {
-        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-        var bytes = new byte[16];
-        rng.GetBytes(bytes);
-        return BitConverter.ToString(bytes).Replace("-", "").ToLower();
-    }
-
-    /// <summary>
-    /// Hashes the nonce and app key using SHA-512
-    /// </summary>
-    /// <param name="nonce">The nonce to hash</param>
-    /// <param name="appKey">The app key to include in the hash</param>
-    /// <returns>A hexadecimal string representing the SHA-512 hash</returns>
-    private static string HashSecret(string nonce, string appKey)
-    {
-        using var sha512 = System.Security.Cryptography.SHA512.Create();
-        var bytes = System.Text.Encoding.UTF8.GetBytes(nonce + appKey);
-        var hash = sha512.ComputeHash(bytes);
-        return BitConverter.ToString(hash).Replace("-", "").ToLower();
-    }
 
     /// <summary>
     /// Configures the Global Payments SDK with necessary credentials and settings.
@@ -94,7 +69,7 @@ public class Program
         {
             AppId = GetEnvVar("GP_APP_ID"),
             AppKey = GetEnvVar("GP_APP_KEY"),
-            Environment = "production".Equals(GetEnvVar("GP_ENVIRONMENT"))
+            Environment = "PRODUCTION".Equals(GetEnvVar("GP_API_ENVIRONMENT"))
                 ? GlobalPayments.Api.Entities.Environment.PRODUCTION
                 : GlobalPayments.Api.Entities.Environment.TEST,
             Channel = GlobalPayments.Api.Entities.Channel.CardNotPresent,
@@ -109,65 +84,6 @@ public class Program
     /// <param name="app">The web application to configure</param>
     private static void ConfigureEndpoints(WebApplication app)
     {
-        // Configure HTTP endpoints
-        app.MapGet("/config", () => Results.Ok(new
-        {
-            success = true,
-            data = new {
-                publicApiKey = GetEnvVar("PUBLIC_API_KEY")
-            }
-        }));
-
-        app.MapPost("/get-access-token", async () =>
-        {
-            try
-            {
-                var nonce = GenerateNonce();
-                var secret = HashSecret(nonce, GetEnvVar("GP_APP_KEY"));
-
-                var tokenRequest = new
-                {
-                    app_id = GetEnvVar("GP_APP_ID"),
-                    nonce = nonce,
-                    secret = secret,
-                    grant_type = "client_credentials",
-                    seconds_to_expire = 600,
-                    permissions = new[] { "PMT_POST_Create_Single" }
-                };
-
-                var apiEndpoint = "production".Equals(GetEnvVar("GP_ENVIRONMENT"))
-                    ? "https://apis.globalpay.com/ucp/accesstoken"
-                    : "https://apis.sandbox.globalpay.com/ucp/accesstoken";
-
-                using var httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.Add("X-GP-Version", "2021-03-22");
-
-                var content = new StringContent(
-                    System.Text.Json.JsonSerializer.Serialize(tokenRequest),
-                    System.Text.Encoding.UTF8,
-                    "application/json"
-                );
-
-                var response = await httpClient.PostAsync(apiEndpoint, content);
-                var responseBody = await response.Content.ReadAsStringAsync();
-                var data = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(responseBody);
-
-                var environment = "production".Equals(GetEnvVar("GP_ENVIRONMENT")) ? "production" : "sandbox";
-
-                return Results.Ok(new
-                {
-                    success = true,
-                    token = data["token"].ToString(),
-                    environment = environment
-                });
-            }
-            catch (Exception ex)
-            {
-                return Results.StatusCode(500);
-            }
-        });
-
-        ConfigurePaymentEndpoint(app);
         ConfigureMarketplaceEndpoint(app);
     }
 
@@ -191,105 +107,6 @@ public class Program
     }
 
     /// <summary>
-    /// Configures the payment processing endpoint that handles card transactions.
-    /// </summary>
-    /// <param name="app">The web application to configure</param>
-    private static void ConfigurePaymentEndpoint(WebApplication app)
-    {
-        app.MapPost("/process-payment", async (HttpContext context) =>
-        {
-            // Parse form data from the request
-            var form = await context.Request.ReadFormAsync();
-            var billingZip = form["billing_zip"].ToString();
-            var token = form["payment_token"].ToString();
-            var amountStr = form["amount"].ToString();
-
-            // Validate required fields are present
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(billingZip) || string.IsNullOrEmpty(amountStr))
-            {
-                return Results.BadRequest(new {
-                    success = false,
-                    message = "Payment processing failed",
-                    error = new {
-                        code = "VALIDATION_ERROR",
-                        details = "Missing required fields"
-                    }
-                });
-            }
-
-            // Validate and parse amount
-            if (!decimal.TryParse(amountStr, out var amount) || amount <= 0)
-            {
-                return Results.BadRequest(new {
-                    success = false,
-                    message = "Payment processing failed",
-                    error = new {
-                        code = "VALIDATION_ERROR",
-                        details = "Amount must be a positive number"
-                    }
-                });
-            }
-
-            // Initialize payment data using tokenized card information
-            var card = new CreditCardData
-            {
-                Token = token
-            };
-
-            // Create billing address for AVS verification
-            var address = new Address
-            {
-                PostalCode = SanitizePostalCode(billingZip)
-            };
-
-            try
-            {
-                // Process the payment transaction using the provided amount
-                var response = card.Charge(amount)
-                    .WithAllowDuplicates(true)
-                    .WithCurrency("USD")
-                    .WithAddress(address)
-                    .Execute();
-
-                // Verify transaction was successful
-                if (response.ResponseCode != "00" && response.ResponseCode != "SUCCESS")
-                {
-                    return Results.BadRequest(new {
-                        success = false,
-                        message = "Payment processing failed",
-                        error = new {
-                            code = "PAYMENT_DECLINED",
-                            details = response.ResponseMessage
-                        }
-                    });
-                }
-
-                // Return success response with transaction ID
-                return Results.Ok(new
-                {
-                    success = true,
-                    message = $"Payment successful! Transaction ID: {response.TransactionId}",
-                    data = new {
-                        transactionId = response.TransactionId
-                    }
-                });
-            } 
-            catch (ApiException ex)
-            {
-                // Handle payment processing errors
-                return Results.BadRequest(new {
-                    success = false,
-                    message = "Payment processing failed",
-                    error = new {
-                        code = "API_ERROR",
-                        details = ex.Message
-                    }
-                });
-            }
-        });
-    }
-
-    /// <summary>
     /// Configures the marketplace payment processing endpoint with automatic fee splitting.
     /// </summary>
     /// <param name="app">The web application to configure</param>
@@ -299,14 +116,20 @@ public class Program
         {
             // Parse form data from the request
             var form = await context.Request.ReadFormAsync();
-            var token = form["payment_token"].ToString();
+            var cardName = form["card_name"].ToString();
+            var cardNumber = form["card_number"].ToString();
+            var cardExpiry = form["card_expiry"].ToString();
+            var cardCvv = form["card_cvv"].ToString();
             var billingZip = form["billing_zip"].ToString();
             var amountStr = form["amount"].ToString();
             var sellerId = form["seller_id"].ToString();
             var platformFeeRateStr = form["platform_fee_rate"].ToString();
 
             // Validate required fields
-            if (string.IsNullOrEmpty(token) ||
+            if (string.IsNullOrEmpty(cardName) ||
+                string.IsNullOrEmpty(cardNumber) ||
+                string.IsNullOrEmpty(cardExpiry) ||
+                string.IsNullOrEmpty(cardCvv) ||
                 string.IsNullOrEmpty(billingZip) ||
                 string.IsNullOrEmpty(amountStr) ||
                 string.IsNullOrEmpty(sellerId))
@@ -349,10 +172,27 @@ public class Program
             splitDetails.SellerId = sellerId;
             splitDetails.SellerName = seller.Name;
 
-            // Initialize payment data using tokenized card information
+            // Parse expiry date (MM/YY format)
+            var expiryParts = cardExpiry.Split('/');
+            if (expiryParts.Length != 2)
+            {
+                return Results.BadRequest(new {
+                    success = false,
+                    message = "Invalid expiry date format. Use MM/YY"
+                });
+            }
+
+            var expiryMonth = expiryParts[0].PadLeft(2, '0');
+            var expiryYear = "20" + expiryParts[1];
+
+            // Initialize payment data with card details
             var card = new CreditCardData
             {
-                Token = token
+                CardHolderName = cardName,
+                Number = cardNumber.Replace(" ", ""),
+                ExpMonth = expiryMonth,
+                ExpYear = expiryYear,
+                Cvn = cardCvv
             };
 
             // Create billing address for AVS verification
@@ -404,6 +244,7 @@ public class Program
                     data = new {
                         transactionId = response.TransactionId,
                         amount = amount,
+                        currency = "USD",
                         splitDetails = splitDetails
                     }
                 });
