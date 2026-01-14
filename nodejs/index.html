@@ -69,8 +69,29 @@
                     </div>
 
                     <div class="gp-form-group">
-                        <label class="gp-label">Credit Card Information:</label>
-                        <div id="credit-card"></div>
+                        <label for="card_name" class="gp-label">Cardholder Name:</label>
+                        <input type="text" id="card_name" name="card_name" class="gp-input" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <label for="card_number" class="gp-label">Card Number:</label>
+                        <input type="text" id="card_number" name="card_number" class="gp-input" placeholder="4263970000005262" maxlength="19" required>
+                        <small class="gp-help-text">Test card: 4263970000005262</small>
+                    </div>
+
+                    <div class="gp-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="gp-form-group">
+                            <label for="card_expiry" class="gp-label">Expiry (MM/YY):</label>
+                            <input type="text" id="card_expiry" name="card_expiry" class="gp-input" placeholder="12/26" maxlength="5" required>
+                        </div>
+                        <div class="gp-form-group">
+                            <label for="card_cvv" class="gp-label">CVV:</label>
+                            <input type="text" id="card_cvv" name="card_cvv" class="gp-input" placeholder="123" maxlength="4" required>
+                        </div>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <button type="submit" class="gp-button gp-button-primary" id="submit-btn">Process Payment</button>
                     </div>
                 </form>
 
@@ -148,7 +169,6 @@
         </div>
     </footer>
 
-    <script src="https://js.globalpay.com/v1/globalpayments.js"></script>
     <script>
 // Load sellers into dropdown
 async function loadSellers() {
@@ -174,88 +194,55 @@ async function loadSellers() {
     });
 }
 
-// Global variable to store access token and card form
-let accessToken = null;
-let cardForm = null;
-let tokenRefreshInterval = null;
-
-// Fetch and configure access token for Drop-in UI
-async function refreshAccessToken() {
-    try {
-        const tokenResponse = await fetch('/get-access-token', { method: 'POST' });
-        const tokenData = await tokenResponse.json();
-
-        if (!tokenData.success || !tokenData.token) {
-            throw new Error('Failed to fetch access token');
-        }
-
-        accessToken = tokenData.token;
-
-        // Configure GlobalPayments SDK with access token (Drop-in UI approach)
-        GlobalPayments.configure({
-            accessToken: accessToken,
-            apiVersion: '2021-03-22',
-            env: 'sandbox'  // Change to 'production' for production environment
-        });
-
-        console.log('Access token configured successfully');
-    } catch (error) {
-        console.error('Error refreshing access token:', error);
-        throw error;
-    }
+// Format card number with spaces
+function formatCardNumber(input) {
+    let value = input.value.replace(/\s/g, '');
+    let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+    input.value = formattedValue;
 }
 
-// Initialize payment form with GP SDK
+// Format expiry date as MM/YY
+function formatExpiry(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value.length >= 2) {
+        value = value.slice(0, 2) + '/' + value.slice(2, 4);
+    }
+    input.value = value;
+}
+
+// Initialize payment form
 async function initializeMarketplaceForm() {
     await loadSellers();
 
-    // Fetch and configure access token
-    await refreshAccessToken();
+    // Add input formatting
+    const cardNumberInput = document.getElementById('card_number');
+    const expiryInput = document.getElementById('card_expiry');
 
-    // Set up token auto-refresh every 8 minutes (before 10-minute expiry)
-    tokenRefreshInterval = setInterval(async () => {
-        try {
-            await refreshAccessToken();
-            console.log('Access token auto-refreshed');
-        } catch (error) {
-            console.error('Failed to auto-refresh access token:', error);
-        }
-    }, 8 * 60 * 1000);  // 8 minutes in milliseconds
-
-    // Create credit card form with enhanced Drop-in UI features
-    cardForm = GlobalPayments.creditCard.form('#credit-card', {
-        style: 'gp-default',
-        requireCardHolderName: true,
-        fieldValidation: { enabled: true },
-        allowedCardTypes: ['visa', 'mastercard', 'amex', 'discover']
-    });
+    cardNumberInput.addEventListener('input', (e) => formatCardNumber(e.target));
+    expiryInput.addEventListener('input', (e) => formatExpiry(e.target));
 
     // Handle form submission
     const form = document.getElementById('payment-form');
+    const submitBtn = document.getElementById('submit-btn');
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // Tokenize card (GP SDK handles this automatically)
-    });
 
-    // Handle successful tokenization
-    cardForm.on('token-success', async (resp) => {
+        // Disable submit button to prevent double submission
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing...';
+
         try {
             // Collect form values
-            const formValues = {
-                payment_token: resp.paymentReference,
-                amount: document.getElementById('amount').value,
-                seller_id: document.getElementById('seller_id').value,
-                platform_fee_rate: document.getElementById('platform_fee_rate').value,
-                billing_zip: document.getElementById('billing_zip').value
-            };
-
-            // Prepare form data
             const formData = new FormData();
-            formData.append('payment_token', formValues.payment_token);
-            formData.append('amount', formValues.amount);
-            formData.append('seller_id', formValues.seller_id);
-            formData.append('platform_fee_rate', formValues.platform_fee_rate);
-            formData.append('billing_zip', formValues.billing_zip);
+            formData.append('card_name', document.getElementById('card_name').value);
+            formData.append('card_number', document.getElementById('card_number').value.replace(/\s/g, ''));
+            formData.append('card_expiry', document.getElementById('card_expiry').value);
+            formData.append('card_cvv', document.getElementById('card_cvv').value);
+            formData.append('amount', document.getElementById('amount').value);
+            formData.append('seller_id', document.getElementById('seller_id').value);
+            formData.append('platform_fee_rate', document.getElementById('platform_fee_rate').value);
+            formData.append('billing_zip', document.getElementById('billing_zip').value);
 
             // Submit to marketplace endpoint
             const paymentResponse = await fetch('/process-marketplace-payment', {
@@ -267,16 +254,18 @@ async function initializeMarketplaceForm() {
 
             if (result.success) {
                 displaySplitResults(result.data);
+                form.reset();
+                await loadSellers(); // Reset seller dropdown
             } else {
-                alert('Payment failed: ' + result.message);
+                alert('Payment failed: ' + (result.error?.details || result.message));
             }
         } catch (error) {
             alert('Error processing payment: ' + error.message);
+        } finally {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Process Payment';
         }
-    });
-
-    cardForm.on('token-error', (error) => {
-        alert('Card tokenization failed: ' + error.message);
     });
 }
 

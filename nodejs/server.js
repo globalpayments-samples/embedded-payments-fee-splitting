@@ -1,13 +1,13 @@
 /**
- * Global Payments SDK Template - Node.js
- * 
- * This Express application provides a starting template for Global Payments SDK integration.
- * Customize the endpoints and logic below for your specific use case.
+ * Marketplace Payment Processing Application
+ *
+ * This Express application demonstrates marketplace payment processing with fee splitting
+ * using the Global Payments SDK. It handles card data from the frontend, validates seller
+ * information, and processes payments with automatic fee split calculation.
  */
 
 import express from 'express';
 import * as dotenv from 'dotenv';
-import crypto from 'crypto';
 import {
     ServicesContainer,
     GpApiConfig,
@@ -30,18 +30,17 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 8000;
 
-app.use(express.urlencoded({ extended: true })); // Parse form data
-app.use(express.json()); // Parse JSON requests
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 // Configure multer for multipart/form-data parsing
-// Use memory storage (no disk writes for payment data)
 const upload = multer();
 
 // Configure Global Payments SDK with credentials and settings
 const config = new GpApiConfig();
 config.appId = process.env.GP_APP_ID;
 config.appKey = process.env.GP_APP_KEY;
-config.environment = process.env.GP_ENVIRONMENT === 'production'
+config.environment = process.env.GP_API_ENVIRONMENT === 'PRODUCTION'
     ? 'production'
     : 'test';
 config.channel = Channel.CardNotPresent;
@@ -50,141 +49,31 @@ ServicesContainer.configureService(config);
 
 /**
  * Utility function to sanitize postal code
- * Customize validation logic as needed for your use case
  */
 const sanitizePostalCode = (postalCode) => {
+    if (!postalCode) return '';
     return postalCode.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 10);
 };
-
-/**
- * Config endpoint - provides public API key for client-side use
- * Customize response data as needed
- */
-app.get('/config', (req, res) => {
-    res.json({
-        success: true,
-        data: {
-            publicApiKey: process.env.PUBLIC_API_KEY
-            // Add other configuration data as needed
-        }
-    });
-});
-
-/**
- * Access Token endpoint - generates restricted access tokens for frontend tokenization
- * Used by Drop-In UI for secure client-side card tokenization
- */
-app.post('/get-access-token', async (req, res) => {
-    try {
-        const nonce = crypto.randomBytes(16).toString('hex');
-        const secret = crypto.createHash('sha512')
-            .update(nonce + process.env.GP_APP_KEY)
-            .digest('hex');
-
-        const tokenRequest = {
-            app_id: process.env.GP_APP_ID,
-            nonce: nonce,
-            secret: secret,
-            grant_type: 'client_credentials',
-            seconds_to_expire: 600,
-            permissions: ['PMT_POST_Create_Single']
-        };
-
-        const apiEndpoint = process.env.GP_ENVIRONMENT === 'production'
-            ? 'https://apis.globalpay.com/ucp/accesstoken'
-            : 'https://apis.sandbox.globalpay.com/ucp/accesstoken';
-
-        const response = await fetch(apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-GP-Version': '2021-03-22'
-            },
-            body: JSON.stringify(tokenRequest)
-        });
-
-        const data = await response.json();
-
-        res.json({
-            success: true,
-            token: data.token
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-/**
- * Example payment processing endpoint
- * Customize this endpoint for your specific payment flow
- */
-app.post('/process-payment', async (req, res) => {
-    try {
-        // TODO: Add your payment processing logic here
-        // Example implementation for basic charge:
-        
-        if (!req.body.payment_token) {
-            throw new Error('Payment token is required');
-        }
-
-        const card = new CreditCardData();
-        card.token = req.body.payment_token;
-
-        // Customize amount and other parameters as needed
-        const amount = req.body.amount || 10.00;
-
-        // Add billing address if needed
-        const address = new Address();
-        if (req.body.billing_zip) {
-            address.postalCode = sanitizePostalCode(req.body.billing_zip);
-        }
-
-        const response = await card.charge(amount)
-            .withAllowDuplicates(true)
-            .withCurrency('USD')
-            .withAddress(address)
-            .execute();
-
-        // Verify transaction was successful
-        if (response.responseCode !== '00' && response.responseCode !== 'SUCCESS') {
-            res.status(400).json({
-                success: false,
-                message: 'Payment processing failed',
-                error: {
-                    code: 'PAYMENT_DECLINED',
-                    details: response.responseMessage
-                }
-            });
-            return;
-        }
-
-        res.json({
-            success: true,
-            message: 'Payment processed successfully',
-            data: { transactionId: response.transactionId }
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Payment processing failed',
-            error: error.message
-        });
-    }
-});
 
 /**
  * Marketplace payment processing endpoint with fee splitting
  */
 app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
     try {
-        const { payment_token, billing_zip, amount, seller_id, platform_fee_rate } = req.body;
+        const {
+            card_name,
+            card_number,
+            card_expiry,
+            card_cvv,
+            billing_zip,
+            amount,
+            seller_id,
+            platform_fee_rate
+        } = req.body;
 
         // Validate required fields
-        if (!payment_token || !billing_zip || !amount || !seller_id) {
+        if (!card_name || !card_number || !card_expiry || !card_cvv ||
+            !billing_zip || !amount || !seller_id) {
             return res.status(400).json({
                 success: false,
                 message: 'Missing required fields'
@@ -192,6 +81,12 @@ app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
         }
 
         const amountNum = parseFloat(amount);
+        if (amountNum < 0.50) {
+            return res.status(400).json({
+                success: false,
+                message: 'Amount must be at least $0.50'
+            });
+        }
 
         // Validate seller
         if (!SellerManager.isValidSeller(seller_id)) {
@@ -210,13 +105,30 @@ app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
         splitDetails.sellerId = seller_id;
         splitDetails.sellerName = seller.name;
 
-        // Process payment
+        // Parse expiry date (MM/YY format)
+        const expiryParts = card_expiry.split('/');
+        if (expiryParts.length !== 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid expiry date format. Use MM/YY'
+            });
+        }
+
+        const expiryMonth = expiryParts[0].padStart(2, '0');
+        const expiryYear = '20' + expiryParts[1];
+
+        // Initialize payment data with card details
         const card = new CreditCardData();
-        card.token = payment_token;
+        card.cardHolderName = card_name;
+        card.number = card_number.replace(/\s/g, '');
+        card.expMonth = expiryMonth;
+        card.expYear = expiryYear;
+        card.cvn = card_cvv;
 
         const address = new Address();
         address.postalCode = sanitizePostalCode(billing_zip);
 
+        // Process payment
         const response = await card.charge(amountNum)
             .withAllowDuplicates(true)
             .withCurrency('USD')
@@ -229,7 +141,7 @@ app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
                 message: 'Payment processing failed',
                 error: {
                     code: 'PAYMENT_DECLINED',
-                    details: response.responseMessage
+                    details: response?.responseMessage || 'Transaction declined'
                 }
             });
         }
@@ -240,11 +152,11 @@ app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
             data: {
                 transactionId: response.transactionId,
                 amount: amountNum,
+                currency: 'USD',
                 splitDetails
             }
         });
     } catch (error) {
-        // Handle SDK-specific payment errors
         if (error instanceof ApiError || error.name === 'ApiError') {
             return res.status(400).json({
                 success: false,
@@ -256,7 +168,6 @@ app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
             });
         }
 
-        // Handle all other errors
         res.status(500).json({
             success: false,
             message: 'Internal server error',
@@ -268,20 +179,10 @@ app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
     }
 });
 
-/**
- * Add your custom endpoints here
- * Examples:
- * - app.post('/authorize', ...) // Authorization only
- * - app.post('/capture', ...)   // Capture authorized payment
- * - app.post('/refund', ...)    // Process refund
- * - app.get('/transaction/:id', ...) // Get transaction details
- */
-
 // Serve static files - MUST come after API routes
 app.use(express.static('.'));
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${port}`);
-    console.log(`Customize this template for your use case!`);
 });
