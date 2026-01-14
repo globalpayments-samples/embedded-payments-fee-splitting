@@ -162,8 +162,8 @@ public class ProcessPaymentServlet extends HttpServlet {
                 return;
             }
 
-            String expiryMonth = String.format("%02d", Integer.parseInt(expiryParts[0]));
-            String expiryYear = "20" + expiryParts[1];
+            Integer expiryMonth = Integer.parseInt(expiryParts[0]);
+            Integer expiryYear = Integer.parseInt("20" + expiryParts[1]);
 
             // Initialize payment data with card details
             CreditCardData card = new CreditCardData();

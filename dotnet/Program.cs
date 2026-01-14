@@ -182,8 +182,8 @@ public class Program
                 });
             }
 
-            var expiryMonth = expiryParts[0].PadLeft(2, '0');
-            var expiryYear = "20" + expiryParts[1];
+            var expiryMonth = int.Parse(expiryParts[0].PadLeft(2, '0'));
+            var expiryYear = int.Parse("20" + expiryParts[1]);
 
             // Initialize payment data with card details
             var card = new CreditCardData
