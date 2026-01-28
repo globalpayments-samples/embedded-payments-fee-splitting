@@ -6,6 +6,7 @@ public class Seller
     public string Name { get; set; } = string.Empty;
     public double PlatformFeeRate { get; set; }
     public string Description { get; set; } = string.Empty;
+    public string ProPayAccountNumber { get; set; } = string.Empty;
 }
 
 public class SellersData

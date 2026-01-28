@@ -160,10 +160,10 @@ public class Program
 
             var seller = SellerManager.GetSellerById(sellerId);
 
-            // Parse platform fee rate (default to 10.0 if not provided)
+            // Parse platform fee rate (default to 3.0 if not provided)
             if (!double.TryParse(platformFeeRateStr, out var platformFeeRate))
             {
-                platformFeeRate = 10.0;
+                platformFeeRate = 3.0;
             }
 
             // Calculate fee split

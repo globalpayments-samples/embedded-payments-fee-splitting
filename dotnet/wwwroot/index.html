@@ -59,8 +59,8 @@
 
                     <div class="gp-form-group">
                         <label for="platform_fee_rate" class="gp-label">Platform Fee (%):</label>
-                        <input type="number" id="platform_fee_rate" name="platform_fee_rate" class="gp-input" min="5" max="25" step="1" value="10" required>
-                        <small class="gp-help-text">Adjustable between 5-25%</small>
+                        <input type="number" id="platform_fee_rate" name="platform_fee_rate" class="gp-input" min="3" max="5" step="0.5" value="3" required>
+                        <small class="gp-help-text">Adjustable between 3-5%</small>
                     </div>
 
                     <div class="gp-form-group">
@@ -113,10 +113,6 @@
                             <tr>
                                 <td><strong>Transaction Amount</strong></td>
                                 <td style="text-align: right;"><strong id="split-amount"></strong></td>
-                            </tr>
-                            <tr>
-                                <td>Processing Fee (<span id="proc-fee-rate"></span>% + $<span id="proc-fee-fixed"></span>)</td>
-                                <td style="text-align: right;" id="split-processing-fee"></td>
                             </tr>
                             <tr>
                                 <td>Platform Fee (<span id="split-platform-rate"></span>%)</td>
@@ -279,10 +275,7 @@ function displaySplitResults(data) {
     // Populate results
     document.getElementById('txn-id').textContent = data.transactionId;
     document.getElementById('split-amount').textContent = '$' + split.amount.toFixed(2);
-    document.getElementById('proc-fee-rate').textContent = split.processingFeeRate.toFixed(1);
-    document.getElementById('proc-fee-fixed').textContent = split.processingFeeFixed.toFixed(2);
-    document.getElementById('split-processing-fee').textContent = '-$' + split.processingFee.toFixed(2);
-    document.getElementById('split-platform-rate').textContent = split.platformFeeRate.toFixed(0);
+    document.getElementById('split-platform-rate').textContent = split.platformFeeRate.toFixed(1);
     document.getElementById('split-platform-fee').textContent = '-$' + split.platformFee.toFixed(2);
     document.getElementById('split-seller-name').textContent = split.sellerName;
     document.getElementById('split-seller-payout').textContent = '$' + split.sellerPayout.toFixed(2);
@@ -296,7 +289,7 @@ function resetPaymentForm() {
     document.getElementById('split-result').style.display = 'none';
     document.getElementById('payment-form').reset();
     document.getElementById('amount').value = '100.00';
-    document.getElementById('platform_fee_rate').value = '10';
+    document.getElementById('platform_fee_rate').value = '3';
     document.getElementById('seller_id').value = 'seller_001'; // Reset to default
     document.getElementById('billing_zip').value = '12345'; // Reset to default
 }
