@@ -1,7 +1,7 @@
 /**
- * Marketplace Payment Processing Application
+ * Embedded Payment Processing Application
  *
- * This Express application demonstrates marketplace payment processing with fee splitting
+ * This Express application demonstrates embedded payment processing with fee splitting
  * using the Global Payments SDK. It handles card data from the frontend, validates seller
  * information, and processes payments with automatic fee split calculation.
  */
@@ -56,9 +56,9 @@ const sanitizePostalCode = (postalCode) => {
 };
 
 /**
- * Marketplace payment processing endpoint with fee splitting
+ * Embedded payment processing endpoint with fee splitting
  */
-app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
+app.post('/process-embedded-payment', upload.none(), async (req, res) => {
     try {
         const {
             card_name,
@@ -97,7 +97,7 @@ app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
         }
 
         const seller = SellerManager.getSellerById(seller_id);
-        const platformFeeRate = platform_fee_rate ? parseFloat(platform_fee_rate) : 10.0;
+        const platformFeeRate = platform_fee_rate ? parseFloat(platform_fee_rate) : 3.0;
 
         // Calculate split
         const calculator = new SplitCalculator(platformFeeRate);
@@ -146,6 +146,13 @@ app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
             });
         }
 
+        // Store transaction ID in split details
+        splitDetails.transactionId = response.transactionId;
+
+        // TODO: Implement SplitFunds integration when PayFac SDK is available for Node.js
+        // This would transfer seller payout to seller's ProPay account
+        // splitDetails.splitTransactionId = await executeSplitFunds(seller.proPayAccountNumber, splitDetails.sellerPayout, response.transactionId);
+
         res.json({
             success: true,
             message: `Payment successful! Transaction ID: ${response.transactionId}`,
@@ -153,7 +160,9 @@ app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
                 transactionId: response.transactionId,
                 amount: amountNum,
                 currency: 'USD',
-                splitDetails
+                splitDetails,
+                splitFundsExecuted: false,
+                splitFundsError: 'SplitFunds not yet implemented for Node.js'
             }
         });
     } catch (error) {
