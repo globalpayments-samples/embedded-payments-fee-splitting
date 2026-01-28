@@ -100,6 +100,7 @@
                     <div class="gp-card-header">
                         <h3 class="gp-card-title">✓ Payment Successful</h3>
                         <p class="gp-text-muted">Transaction ID: <span id="txn-id"></span></p>
+                        <p class="gp-text-muted" id="split-txn-row" style="display: none;">Split Transaction ID: <span id="split-txn-id"></span></p>
                     </div>
 
                     <table class="gp-table">
@@ -279,6 +280,14 @@ function displaySplitResults(data) {
     document.getElementById('split-platform-fee').textContent = '-$' + split.platformFee.toFixed(2);
     document.getElementById('split-seller-name').textContent = split.sellerName;
     document.getElementById('split-seller-payout').textContent = '$' + split.sellerPayout.toFixed(2);
+
+    // Show split transaction ID if available
+    if (data.splitFundsExecuted && split.splitTransactionId) {
+        document.getElementById('split-txn-id').textContent = split.splitTransactionId;
+        document.getElementById('split-txn-row').style.display = 'block';
+    } else {
+        document.getElementById('split-txn-row').style.display = 'none';
+    }
 
     // Scroll to results
     document.getElementById('split-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
