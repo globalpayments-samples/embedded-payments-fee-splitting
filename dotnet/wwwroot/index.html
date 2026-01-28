@@ -31,14 +31,14 @@
 
     <div class="gp-container">
         <!-- Page Title -->
-        <h1 class="gp-page-title">Marketplace Fee Splitting Demo</h1>
+        <h1 class="gp-page-title">Embedded Payments Demo</h1>
         <p class="gp-page-subtitle">Process payments with automatic fee splitting between platform and seller.</p>
 
         <!-- Payment Form Section -->
         <div id="payment-form-section">
             <div class="gp-card">
                 <div class="gp-card-header">
-                    <h2 class="gp-card-title">Marketplace Fee Splitting</h2>
+                    <h2 class="gp-card-title">Embedded Payments</h2>
                     <p class="gp-card-description">
                         Process payments with automatic fee splitting between platform and seller.
                     </p>
@@ -211,7 +211,7 @@ function formatExpiry(input) {
 }
 
 // Initialize payment form
-async function initializeMarketplaceForm() {
+async function initializeEmbeddedPaymentForm() {
     await loadSellers();
 
     // Add input formatting
@@ -244,8 +244,8 @@ async function initializeMarketplaceForm() {
             formData.append('platform_fee_rate', document.getElementById('platform_fee_rate').value);
             formData.append('billing_zip', document.getElementById('billing_zip').value);
 
-            // Submit to marketplace endpoint
-            const paymentResponse = await fetch('/process-marketplace-payment', {
+            // Submit to embedded payment endpoint
+            const paymentResponse = await fetch('/process-embedded-payment', {
                 method: 'POST',
                 body: formData
             });
@@ -302,7 +302,7 @@ function resetPaymentForm() {
 }
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', initializeMarketplaceForm);
+document.addEventListener('DOMContentLoaded', initializeEmbeddedPaymentForm);
     </script>
 </body>
 </html>

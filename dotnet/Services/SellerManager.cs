@@ -1,7 +1,7 @@
-namespace MarketplaceFee.Services;
+namespace EmbeddedPayments.Services;
 
 using System.Text.Json;
-using MarketplaceFee.Models;
+using EmbeddedPayments.Models;
 
 public class SellerManager
 {

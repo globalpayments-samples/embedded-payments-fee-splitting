@@ -1,6 +1,6 @@
-namespace MarketplaceFee.Services;
+namespace EmbeddedPayments.Services;
 
-using MarketplaceFee.Models;
+using EmbeddedPayments.Models;
 
 public class SplitCalculator
 {

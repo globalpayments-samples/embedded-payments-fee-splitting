@@ -3,8 +3,8 @@ using GlobalPayments.Api.Entities;
 using GlobalPayments.Api.PaymentMethods;
 using GlobalPayments.Api.Services;
 using dotenv.net;
-using MarketplaceFee.Services;
-using MarketplaceFee.Models;
+using EmbeddedPayments.Services;
+using EmbeddedPayments.Models;
 
 namespace CardPaymentSample;
 
@@ -84,7 +84,7 @@ public class Program
     /// <param name="app">The web application to configure</param>
     private static void ConfigureEndpoints(WebApplication app)
     {
-        ConfigureMarketplaceEndpoint(app);
+        ConfigureEmbeddedPaymentEndpoint(app);
     }
 
     /// <summary>
@@ -98,21 +98,21 @@ public class Program
     private static string SanitizePostalCode(string postalCode)
     {
         if (string.IsNullOrEmpty(postalCode)) return string.Empty;
-        
+
         // Remove any characters that aren't alphanumeric or hyphen
         var sanitized = new string(postalCode.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
-        
+
         // Limit length to 10 characters
         return sanitized.Length > 10 ? sanitized[..10] : sanitized;
     }
 
     /// <summary>
-    /// Configures the marketplace payment processing endpoint with automatic fee splitting.
+    /// Configures the embedded payment processing endpoint with automatic fee splitting.
     /// </summary>
     /// <param name="app">The web application to configure</param>
-    private static void ConfigureMarketplaceEndpoint(WebApplication app)
+    private static void ConfigureEmbeddedPaymentEndpoint(WebApplication app)
     {
-        app.MapPost("/process-marketplace-payment", async (HttpContext context) =>
+        app.MapPost("/process-embedded-payment", async (HttpContext context) =>
         {
             // Parse form data from the request
             var form = await context.Request.ReadFormAsync();
