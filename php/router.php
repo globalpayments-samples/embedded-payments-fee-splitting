@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Router for PHP built-in server
  *
  * Maps clean URLs to PHP endpoint files:
- * - /process-marketplace-payment → process-marketplace-payment.php
+ * - /process-embedded-payment → process-embedded-payment.php
  */
 
 $requestUri = $_SERVER['REQUEST_URI'];
@@ -40,8 +40,8 @@ if (isset($pathInfo['extension']) && in_array(strtolower($pathInfo['extension'])
 
 // API endpoint routing
 $endpointMap = [
-    'process-marketplace-payment' => [
-        'file' => 'process-marketplace-payment.php',
+    'process-embedded-payment' => [
+        'file' => 'process-embedded-payment.php',
         'methods' => ['POST']
     ]
 ];

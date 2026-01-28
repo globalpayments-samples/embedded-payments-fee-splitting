@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace MarketplaceFee;
+namespace EmbeddedPayments;
 
 /**
  * Seller Manager
  *
- * Manages mock seller data for marketplace demo
+ * Manages mock seller data for embedded payments demo
  *
  * PHP version 7.4 or higher
  *
  * @category  Payment_Processing
- * @package   MarketplaceFee
+ * @package   EmbeddedPayments
  * @author    Global Payments
  * @license   MIT License
  * @link      https://github.com/globalpayments

@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 /**
- * Marketplace Payment Processing Script
+ * Embedded Payment Processing Script
  *
- * This script demonstrates marketplace payment processing with fee splitting
+ * This script demonstrates embedded payment processing with fee splitting
  * using the Global Payments SDK (GP API). It handles tokenized card data from
  * the Drop-In UI, validates seller information, and processes payments with
  * automatic fee split calculation.
@@ -13,7 +13,7 @@ declare(strict_types=1);
  * PHP version 7.4 or higher
  *
  * @category  Payment_Processing
- * @package   GlobalPayments_Marketplace
+ * @package   GlobalPayments_EmbeddedPayments
  * @author    Global Payments
  * @license   MIT License
  * @link      https://github.com/globalpayments
@@ -29,9 +29,9 @@ use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
 use GlobalPayments\Api\ServicesContainer;
 use GlobalPayments\Api\Entities\Enums\Environment;
 use GlobalPayments\Api\Entities\Enums\Channel;
-use MarketplaceFee\SellerManager;
-use MarketplaceFee\SplitCalculator;
-use MarketplaceFee\Utils;
+use EmbeddedPayments\SellerManager;
+use EmbeddedPayments\SplitCalculator;
+use EmbeddedPayments\Utils;
 
 ini_set('display_errors', '0');
 
@@ -63,15 +63,6 @@ function configureSdk(): void
 // Initialize SDK configuration
 configureSdk();
 
-// DEBUG: Log credential verification (REMOVE IN PRODUCTION)
-error_log('=== GP API Configuration Debug ===');
-error_log('APP_ID loaded: ' . (isset($_ENV['GP_APP_ID']) ? 'YES' : 'NO'));
-error_log('APP_ID value: ' . ($_ENV['GP_APP_ID'] ?? 'NOT_SET'));
-error_log('APP_KEY loaded: ' . (isset($_ENV['GP_APP_KEY']) ? 'YES' : 'NO'));
-error_log('APP_KEY length: ' . (isset($_ENV['GP_APP_KEY']) ? strlen($_ENV['GP_APP_KEY']) : 0));
-error_log('Environment: ' . ($_ENV['GP_API_ENVIRONMENT'] ?? 'NOT_SET'));
-error_log('==================================');
-
 // Set response content type to JSON
 header('Content-Type: application/json');
 
@@ -100,8 +91,8 @@ try {
     $address = new Address();
     $address->postalCode = Utils::sanitizePostalCode($_POST['billing_zip']);
 
-    // Calculate fee split
-    $platformFeeRate = floatval($_POST['platform_fee_rate'] ?? 10.0);
+    // Calculate fee split (default to 3% platform fee)
+    $platformFeeRate = floatval($_POST['platform_fee_rate'] ?? 3.0);
     $calculator = new SplitCalculator($platformFeeRate);
     $splitDetails = $calculator->calculateSplit($amount);
 
@@ -147,6 +138,12 @@ try {
         exit;
     }
 
+    // Store transaction ID in split details
+    $splitDetails['transactionId'] = $response->transactionId;
+
+    // TODO: Implement SplitFunds integration when PayFac SDK is available for PHP
+    // This would transfer seller payout to seller's ProPay account
+
     // Return success response with transaction ID and split details
     echo json_encode([
         'success' => true,
@@ -155,25 +152,13 @@ try {
             'transactionId' => $response->transactionId,
             'amount' => $amount,
             'currency' => 'USD',
-            'splitDetails' => $splitDetails
+            'splitDetails' => $splitDetails,
+            'splitFundsExecuted' => false,
+            'splitFundsError' => 'SplitFunds not yet implemented for PHP'
         ]
     ]);
     exit;
 } catch (ApiException $e) {
-    // Log detailed error information
-    error_log('=== Payment Processing Error ===');
-    error_log('Error Message: ' . $e->getMessage());
-    error_log('Error Code: ' . $e->getCode());
-    error_log('Request Data: ' . json_encode([
-        'amount' => $_POST['amount'] ?? 'missing',
-        'seller_id' => $_POST['seller_id'] ?? 'missing',
-        'card_name_present' => isset($_POST['card_name']),
-        'card_number_present' => isset($_POST['card_number']),
-        'card_bin' => isset($_POST['card_number']) ? substr($_POST['card_number'], 0, 6) : 'N/A',
-    ]));
-    error_log('Stack Trace: ' . $e->getTraceAsString());
-    error_log('===============================');
-
     // Handle payment processing errors
     http_response_code(400);
     echo json_encode([
@@ -181,21 +166,11 @@ try {
         'message' => 'Payment processing failed',
         'error' => [
             'code' => 'API_ERROR',
-            'details' => $e->getMessage(),
-            'timestamp' => date('Y-m-d H:i:s')
+            'details' => $e->getMessage()
         ]
     ]);
     exit;
 } catch (\Exception $e) {
-    // Log general error information
-    error_log('=== General Server Error ===');
-    error_log('Error Type: ' . get_class($e));
-    error_log('Error Message: ' . $e->getMessage());
-    error_log('Error Code: ' . $e->getCode());
-    error_log('File: ' . $e->getFile() . ':' . $e->getLine());
-    error_log('Stack Trace: ' . $e->getTraceAsString());
-    error_log('==========================');
-
     // Handle general errors
     http_response_code(500);
     echo json_encode([
@@ -203,8 +178,7 @@ try {
         'message' => 'Internal server error',
         'error' => [
             'code' => 'SERVER_ERROR',
-            'details' => $e->getMessage(),
-            'timestamp' => date('Y-m-d H:i:s')
+            'details' => $e->getMessage()
         ]
     ]);
     exit;
