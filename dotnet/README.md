@@ -1,32 +1,34 @@
-# .NET Marketplace Fee Splitting Example
+# .NET Embedded Payments Example
 
-This example demonstrates marketplace payment processing with automatic fee splitting using .NET and the Global Payments SDK.
+This example demonstrates embedded payment processing with automatic fee splitting and SplitFunds integration using .NET and the Global Payments SDK.
 
 ## Requirements
 
 - .NET 6.0 or later
 - Global Payments account and API credentials
+- ProPay account for SplitFunds functionality
 - **HTTPS required for production** (PCI DSS compliance)
 
 ## Project Structure
 
-- `Program.cs` - Marketplace payment processor with fee splitting
+- `Program.cs` - Embedded payment processor with fee splitting
 - `wwwroot/index.html` - Frontend payment form
 - `.env.sample` - Template for environment variables
-- `Models/` - Marketplace classes (Seller, SplitDetails)
-- `Services/` - Business logic (SellerManager, SplitCalculator)
-- `data/` - Mock seller data
+- `Models/` - Data classes (Seller, SplitDetails)
+- `Services/` - Business logic (SellerManager, SplitCalculator, SplitFundsService)
+- `data/` - Mock seller data with ProPay account numbers
 - `run.sh` - Convenience script to run the application
 
 ## Setup
 
 1. Clone this repository
 2. Copy `.env.sample` to `.env`
-3. Update `.env` with your Global Payments API credentials:
+3. Update `.env` with your credentials:
    ```
    GP_APP_ID=your_gp_api_app_id_here
    GP_APP_KEY=your_gp_api_app_key_here
    GP_API_ENVIRONMENT=TEST
+   PLATFORM_PROPAY_ACCOUNT=your_platform_propay_account
    ```
 4. Install dependencies:
    ```bash
@@ -52,20 +54,28 @@ This implementation uses **backend tokenization** where:
 
 **Security Note**: This approach requires HTTPS in production and proper PCI DSS compliance measures.
 
-### Marketplace Fee Splitting
+### Embedded Payments Fee Splitting
 Automatic fee calculation and splitting:
-1. **Processing Fee**: 2.9% + $0.30 (standard payment processor fee)
-2. **Platform Fee**: Configurable 5-25% of transaction amount
-3. **Seller Payout**: Remaining amount after fees deducted
+1. **Platform Fee**: Configurable 3-5% of transaction amount
+2. **Seller Payout**: Remaining amount after platform fee
+
+Note: Processing fees vary per partner and are not calculated locally.
+
+### SplitFunds Integration
+After successful payment, the system executes a SplitFunds call via PayFacService to transfer the seller's payout:
+- Uses ProPay In-Network transactions
+- Platform account receives full payment
+- SplitFunds transfers seller payout to seller's ProPay account
 
 ### Payment Processing Flow
 1. User fills out form with card details, amount, and seller
-2. Frontend sends all data to `/process-marketplace-payment`
+2. Frontend sends all data to `/process-embedded-payment`
 3. Backend validates seller and calculates fee split
 4. Backend creates CreditCardData with card details
 5. Backend processes charge through Global Payments API
-6. Backend returns transaction ID and split details
-7. Frontend displays success with breakdown
+6. Backend executes SplitFunds to transfer seller payout
+7. Backend returns transaction ID, split transaction ID, and split details
+8. Frontend displays success with breakdown
 
 ### Error Handling
 Comprehensive error handling:
@@ -76,8 +86,8 @@ Comprehensive error handling:
 
 ## API Endpoints
 
-### POST /process-marketplace-payment
-Processes a marketplace payment with automatic fee splitting.
+### POST /process-embedded-payment
+Processes an embedded payment with automatic fee splitting and SplitFunds execution.
 
 Request Parameters:
 - `card_name` (string, required) - Cardholder name
@@ -86,7 +96,7 @@ Request Parameters:
 - `card_cvv` (string, required) - CVV code
 - `amount` (float, required) - Transaction amount (min $0.50)
 - `seller_id` (string, required) - Seller identifier
-- `platform_fee_rate` (float, optional) - Platform fee percentage (5-25%, default 10%)
+- `platform_fee_rate` (float, optional) - Platform fee percentage (3-5%, default 3%)
 - `billing_zip` (string, required) - Billing postal code
 
 Response (Success):
@@ -100,12 +110,16 @@ Response (Success):
     "currency": "USD",
     "splitDetails": {
       "amount": 100.00,
-      "processingFee": 3.20,
-      "platformFee": 10.00,
-      "sellerPayout": 86.80,
+      "platformFee": 3.00,
+      "platformFeeRate": 3.0,
+      "sellerPayout": 97.00,
       "sellerId": "seller_001",
-      "sellerName": "Tech Gadgets Store"
-    }
+      "sellerName": "Tech Gadgets Store",
+      "transactionId": "xxx",
+      "splitTransactionId": "yyy"
+    },
+    "splitFundsExecuted": true,
+    "splitFundsError": null
   }
 }
 ```
