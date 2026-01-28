@@ -2,14 +2,13 @@ package com.globalpayments.example.models;
 
 public class SplitDetails {
     private double amount;
-    private double processingFee;
-    private double processingFeeRate;
-    private double processingFeeFixed;
     private double platformFee;
     private double platformFeeRate;
     private double sellerPayout;
     private String sellerId;
     private String sellerName;
+    private String transactionId;
+    private String splitTransactionId;
 
     public double getAmount() {
         return amount;
@@ -17,30 +16,6 @@ public class SplitDetails {
 
     public void setAmount(double amount) {
         this.amount = amount;
-    }
-
-    public double getProcessingFee() {
-        return processingFee;
-    }
-
-    public void setProcessingFee(double processingFee) {
-        this.processingFee = processingFee;
-    }
-
-    public double getProcessingFeeRate() {
-        return processingFeeRate;
-    }
-
-    public void setProcessingFeeRate(double processingFeeRate) {
-        this.processingFeeRate = processingFeeRate;
-    }
-
-    public double getProcessingFeeFixed() {
-        return processingFeeFixed;
-    }
-
-    public void setProcessingFeeFixed(double processingFeeFixed) {
-        this.processingFeeFixed = processingFeeFixed;
     }
 
     public double getPlatformFee() {
@@ -81,5 +56,21 @@ public class SplitDetails {
 
     public void setSellerName(String sellerName) {
         this.sellerName = sellerName;
+    }
+
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public void setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+    }
+
+    public String getSplitTransactionId() {
+        return splitTransactionId;
+    }
+
+    public void setSplitTransactionId(String splitTransactionId) {
+        this.splitTransactionId = splitTransactionId;
     }
 }

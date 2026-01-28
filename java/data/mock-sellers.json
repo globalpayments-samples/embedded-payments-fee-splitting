@@ -3,20 +3,23 @@
     {
       "id": "seller_001",
       "name": "Tech Gadgets Store",
-      "platformFeeRate": 10.0,
-      "description": "Electronics and gadgets"
+      "platformFeeRate": 3.0,
+      "description": "Electronics and gadgets",
+      "proPayAccountNumber": "718580393"
     },
     {
       "id": "seller_002",
       "name": "Fashion Boutique",
-      "platformFeeRate": 10.0,
-      "description": "Clothing and accessories"
+      "platformFeeRate": 3.0,
+      "description": "Clothing and accessories",
+      "proPayAccountNumber": "718580394"
     },
     {
       "id": "seller_003",
       "name": "Home Goods Co",
-      "platformFeeRate": 10.0,
-      "description": "Furniture and home decor"
+      "platformFeeRate": 3.0,
+      "description": "Furniture and home decor",
+      "proPayAccountNumber": "718580395"
     }
   ]
 }

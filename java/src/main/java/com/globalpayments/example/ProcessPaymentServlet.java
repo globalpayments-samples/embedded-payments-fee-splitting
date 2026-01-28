@@ -24,9 +24,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 
 /**
- * Marketplace Payment Processing Servlet
+ * Embedded Payment Processing Servlet
  *
- * This servlet demonstrates marketplace payment processing with fee splitting
+ * This servlet demonstrates embedded payment processing with fee splitting
  * using the Global Payments SDK. It handles card data from the frontend,
  * validates seller information, and processes payments with automatic fee split calculation.
  *
@@ -35,7 +35,7 @@ import java.math.BigDecimal;
  */
 
 @MultipartConfig
-@WebServlet(urlPatterns = {"/process-marketplace-payment"})
+@WebServlet(urlPatterns = {"/process-embedded-payment"})
 public class ProcessPaymentServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
@@ -82,8 +82,8 @@ public class ProcessPaymentServlet extends HttpServlet {
     }
 
     /**
-     * Handles POST requests to /process-marketplace-payment endpoint.
-     * Processes marketplace payments with fee splitting using card data.
+     * Handles POST requests to /process-embedded-payment endpoint.
+     * Processes embedded payments with fee splitting using card data.
      *
      * @param request The HTTP request containing payment details
      * @param response The HTTP response
@@ -146,7 +146,7 @@ public class ProcessPaymentServlet extends HttpServlet {
             }
 
             Seller seller = SellerManager.getSellerById(sellerId);
-            double platformFeeRate = feeRateStr != null ? Double.parseDouble(feeRateStr) : 10.0;
+            double platformFeeRate = feeRateStr != null ? Double.parseDouble(feeRateStr) : 3.0;
 
             // Calculate split
             SplitCalculator calculator = new SplitCalculator(platformFeeRate);
@@ -193,21 +193,25 @@ public class ProcessPaymentServlet extends HttpServlet {
                 return;
             }
 
+            // Store transaction ID in split details
+            splitDetails.setTransactionId(transaction.getTransactionId());
+
+            // TODO: Implement SplitFunds integration when PayFac SDK is available for Java
+            // This would transfer seller payout to seller's ProPay account
+
             // Return success response with split details
             String successResponse = String.format(
-                "{\"success\":true,\"message\":\"Payment successful! Transaction ID: %s\",\"data\":{\"transactionId\":\"%s\",\"amount\":%s,\"currency\":\"USD\",\"splitDetails\":{\"amount\":%.2f,\"processingFee\":%.2f,\"processingFeeRate\":%.2f,\"processingFeeFixed\":%.2f,\"platformFee\":%.2f,\"platformFeeRate\":%.2f,\"sellerPayout\":%.2f,\"sellerId\":\"%s\",\"sellerName\":\"%s\"}}}",
+                "{\"success\":true,\"message\":\"Payment successful! Transaction ID: %s\",\"data\":{\"transactionId\":\"%s\",\"amount\":%s,\"currency\":\"USD\",\"splitDetails\":{\"amount\":%.2f,\"platformFee\":%.2f,\"platformFeeRate\":%.2f,\"sellerPayout\":%.2f,\"sellerId\":\"%s\",\"sellerName\":\"%s\",\"transactionId\":\"%s\"},\"splitFundsExecuted\":false,\"splitFundsError\":\"SplitFunds not yet implemented for Java\"}}",
                 transaction.getTransactionId(),
                 transaction.getTransactionId(),
                 amountStr,
                 splitDetails.getAmount(),
-                splitDetails.getProcessingFee(),
-                splitDetails.getProcessingFeeRate(),
-                splitDetails.getProcessingFeeFixed(),
                 splitDetails.getPlatformFee(),
                 splitDetails.getPlatformFeeRate(),
                 splitDetails.getSellerPayout(),
                 splitDetails.getSellerId(),
-                splitDetails.getSellerName()
+                splitDetails.getSellerName(),
+                splitDetails.getTransactionId()
             );
             response.getWriter().write(successResponse);
 

@@ -5,6 +5,7 @@ public class Seller {
     private String name;
     private double platformFeeRate;
     private String description;
+    private String proPayAccountNumber;
 
     public String getId() {
         return id;
@@ -36,5 +37,13 @@ public class Seller {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getProPayAccountNumber() {
+        return proPayAccountNumber;
+    }
+
+    public void setProPayAccountNumber(String proPayAccountNumber) {
+        this.proPayAccountNumber = proPayAccountNumber;
     }
 }
