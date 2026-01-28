@@ -236,6 +236,21 @@ public class Program
                     });
                 }
 
+                // Store transaction ID in split details
+                splitDetails.TransactionId = response.TransactionId;
+
+                // Execute SplitFunds to transfer seller payout
+                var splitService = new SplitFundsService();
+                var (splitSuccess, splitTransNum, splitError) = splitService.ExecuteSplit(
+                    seller.ProPayAccountNumber,
+                    (decimal)splitDetails.SellerPayout,
+                    response.TransactionId);
+
+                if (splitSuccess)
+                {
+                    splitDetails.SplitTransactionId = splitTransNum;
+                }
+
                 // Return success response with transaction ID and split details
                 return Results.Ok(new
                 {
@@ -245,7 +260,9 @@ public class Program
                         transactionId = response.TransactionId,
                         amount = amount,
                         currency = "USD",
-                        splitDetails = splitDetails
+                        splitDetails = splitDetails,
+                        splitFundsExecuted = splitSuccess,
+                        splitFundsError = splitError
                     }
                 });
             }
