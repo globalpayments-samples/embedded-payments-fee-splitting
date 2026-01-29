@@ -31,6 +31,7 @@ use GlobalPayments\Api\Entities\Enums\Environment;
 use GlobalPayments\Api\Entities\Enums\Channel;
 use EmbeddedPayments\SellerManager;
 use EmbeddedPayments\SplitCalculator;
+use EmbeddedPayments\SplitFundsService;
 use EmbeddedPayments\Utils;
 
 ini_set('display_errors', '0');
@@ -141,8 +142,17 @@ try {
     // Store transaction ID in split details
     $splitDetails['transactionId'] = $response->transactionId;
 
-    // TODO: Implement SplitFunds integration when PayFac SDK is available for PHP
-    // This would transfer seller payout to seller's ProPay account
+    // Execute SplitFunds to transfer seller payout
+    $splitService = new SplitFundsService();
+    $splitResult = $splitService->executeSplit(
+        $seller['proPayAccountNumber'],
+        $splitDetails['sellerPayout'],
+        $response->transactionId
+    );
+
+    if ($splitResult['success']) {
+        $splitDetails['splitTransactionId'] = $splitResult['transNum'];
+    }
 
     // Return success response with transaction ID and split details
     echo json_encode([
@@ -153,8 +163,8 @@ try {
             'amount' => $amount,
             'currency' => 'USD',
             'splitDetails' => $splitDetails,
-            'splitFundsExecuted' => false,
-            'splitFundsError' => 'SplitFunds not yet implemented for PHP'
+            'splitFundsExecuted' => $splitResult['success'],
+            'splitFundsError' => $splitResult['errorMessage']
         ]
     ]);
     exit;
