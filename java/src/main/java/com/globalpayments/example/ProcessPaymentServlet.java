@@ -20,6 +20,7 @@ import com.globalpayments.example.models.Seller;
 import com.globalpayments.example.models.SplitDetails;
 import com.globalpayments.example.services.SellerManager;
 import com.globalpayments.example.services.SplitCalculator;
+import com.globalpayments.example.services.SplitFundsService;
 import java.io.IOException;
 import java.math.BigDecimal;
 
@@ -196,12 +197,22 @@ public class ProcessPaymentServlet extends HttpServlet {
             // Store transaction ID in split details
             splitDetails.setTransactionId(transaction.getTransactionId());
 
-            // TODO: Implement SplitFunds integration when PayFac SDK is available for Java
-            // This would transfer seller payout to seller's ProPay account
+            // Execute SplitFunds to transfer seller payout
+            SplitFundsService splitService = new SplitFundsService();
+            SplitFundsService.SplitFundsResult splitResult = splitService.executeSplit(
+                seller.getProPayAccountNumber(),
+                splitDetails.getSellerPayout(),
+                transaction.getTransactionId()
+            );
+
+            String splitTransactionId = splitResult.transNum != null ? splitResult.transNum : "";
+            String splitErrorValue = splitResult.errorMessage != null
+                ? String.format("\"%s\"", splitResult.errorMessage.replace("\"", "\\\""))
+                : "null";
 
             // Return success response with split details
             String successResponse = String.format(
-                "{\"success\":true,\"message\":\"Payment successful! Transaction ID: %s\",\"data\":{\"transactionId\":\"%s\",\"amount\":%s,\"currency\":\"USD\",\"splitDetails\":{\"amount\":%.2f,\"platformFee\":%.2f,\"platformFeeRate\":%.2f,\"sellerPayout\":%.2f,\"sellerId\":\"%s\",\"sellerName\":\"%s\",\"transactionId\":\"%s\"},\"splitFundsExecuted\":false,\"splitFundsError\":\"SplitFunds not yet implemented for Java\"}}",
+                "{\"success\":true,\"message\":\"Payment successful! Transaction ID: %s\",\"data\":{\"transactionId\":\"%s\",\"amount\":%s,\"currency\":\"USD\",\"splitDetails\":{\"amount\":%.2f,\"platformFee\":%.2f,\"platformFeeRate\":%.2f,\"sellerPayout\":%.2f,\"sellerId\":\"%s\",\"sellerName\":\"%s\",\"transactionId\":\"%s\",\"splitTransactionId\":\"%s\"},\"splitFundsExecuted\":%s,\"splitFundsError\":%s}}",
                 transaction.getTransactionId(),
                 transaction.getTransactionId(),
                 amountStr,
@@ -211,7 +222,10 @@ public class ProcessPaymentServlet extends HttpServlet {
                 splitDetails.getSellerPayout(),
                 splitDetails.getSellerId(),
                 splitDetails.getSellerName(),
-                splitDetails.getTransactionId()
+                splitDetails.getTransactionId(),
+                splitTransactionId,
+                splitResult.success,
+                splitErrorValue
             );
             response.getWriter().write(successResponse);
 
