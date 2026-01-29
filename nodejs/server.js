@@ -20,6 +20,7 @@ import {
 import multer from 'multer';
 import SellerManager from './lib/SellerManager.js';
 import SplitCalculator from './lib/SplitCalculator.js';
+import SplitFundsService from './lib/SplitFundsService.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -149,9 +150,17 @@ app.post('/process-embedded-payment', upload.none(), async (req, res) => {
         // Store transaction ID in split details
         splitDetails.transactionId = response.transactionId;
 
-        // TODO: Implement SplitFunds integration when PayFac SDK is available for Node.js
-        // This would transfer seller payout to seller's ProPay account
-        // splitDetails.splitTransactionId = await executeSplitFunds(seller.proPayAccountNumber, splitDetails.sellerPayout, response.transactionId);
+        // Execute SplitFunds to transfer seller payout
+        const splitService = new SplitFundsService();
+        const splitResult = await splitService.executeSplit(
+            seller.proPayAccountNumber,
+            splitDetails.sellerPayout,
+            response.transactionId
+        );
+
+        if (splitResult.success) {
+            splitDetails.splitTransactionId = splitResult.transNum;
+        }
 
         res.json({
             success: true,
@@ -161,8 +170,8 @@ app.post('/process-embedded-payment', upload.none(), async (req, res) => {
                 amount: amountNum,
                 currency: 'USD',
                 splitDetails,
-                splitFundsExecuted: false,
-                splitFundsError: 'SplitFunds not yet implemented for Node.js'
+                splitFundsExecuted: splitResult.success,
+                splitFundsError: splitResult.errorMessage
             }
         });
     } catch (error) {
