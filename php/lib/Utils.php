@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace MarketplaceFee;
+namespace EmbeddedPaymentsFee;
 
 /**
- * Utility Functions for Marketplace Operations
+ * Utility Functions for Embedded Payments Operations
  *
  * Provides shared utility methods used across payment processing scripts.
  *

@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * SellerManager - Manages seller data for marketplace
+ * SellerManager - Manages seller data for embedded payments
  *
  * Provides seller lookup and validation functionality using
  * mock seller data from JSON file.

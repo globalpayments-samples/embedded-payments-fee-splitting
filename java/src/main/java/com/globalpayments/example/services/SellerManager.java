@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Manages seller data for marketplace operations.
+ * Manages seller data for embedded payments operations.
  *
  * <p>Provides seller lookup and validation using mock data
  * loaded from JSON configuration file. Implements lazy loading

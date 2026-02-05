@@ -3,10 +3,10 @@ package com.globalpayments.example.services;
 import com.globalpayments.example.models.SplitDetails;
 
 /**
- * Calculates marketplace fee splits for transactions.
+ * Calculates embedded payments fee splits for transactions.
  *
  * <p>Handles calculation of processing fees, platform fees, and seller payouts
- * following marketplace commission structure.</p>
+ * following commission structure.</p>
  *
  * <p>Processing Fee: 2.9% + $0.30 (standard payment processing)</p>
  * <p>Platform Fee: Configurable percentage (5-25%)</p>

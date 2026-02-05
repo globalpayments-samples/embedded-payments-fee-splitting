@@ -3,8 +3,8 @@ using GlobalPayments.Api.Entities;
 using GlobalPayments.Api.PaymentMethods;
 using GlobalPayments.Api.Services;
 using dotenv.net;
-using MarketplaceFee.Services;
-using MarketplaceFee.Models;
+using EmbeddedPaymentsFee.Services;
+using EmbeddedPaymentsFee.Models;
 
 namespace CardPaymentSample;
 
@@ -84,7 +84,7 @@ public class Program
     /// <param name="app">The web application to configure</param>
     private static void ConfigureEndpoints(WebApplication app)
     {
-        ConfigureMarketplaceEndpoint(app);
+        ConfigureEmbeddedPaymentsEndpoint(app);
     }
 
     /// <summary>
@@ -107,12 +107,12 @@ public class Program
     }
 
     /// <summary>
-    /// Configures the marketplace payment processing endpoint with automatic fee splitting.
+    /// Configures the embedded payments processing endpoint with automatic fee splitting.
     /// </summary>
     /// <param name="app">The web application to configure</param>
-    private static void ConfigureMarketplaceEndpoint(WebApplication app)
+    private static void ConfigureEmbeddedPaymentsEndpoint(WebApplication app)
     {
-        app.MapPost("/process-marketplace-payment", async (HttpContext context) =>
+        app.MapPost("/process-embedded-payments-payment", async (HttpContext context) =>
         {
             // Parse form data from the request
             var form = await context.Request.ReadFormAsync();

@@ -1,6 +1,6 @@
-# PHP Marketplace Fee Splitting Example
+# PHP Embedded Payments Fee Splitting Example
 
-This example demonstrates marketplace payment processing with automatic fee splitting using PHP and the Global Payments SDK.
+This example demonstrates embedded payments processing with automatic fee splitting using PHP and the Global Payments SDK.
 
 ## Requirements
 
@@ -11,12 +11,12 @@ This example demonstrates marketplace payment processing with automatic fee spli
 
 ## Project Structure
 
-- `process-marketplace-payment.php` - Marketplace payment processor with fee splitting
+- `process-embedded-payments-payment.php` - Embedded payments processor with fee splitting
 - `index.html` - Frontend payment form
 - `router.php` - Request router for PHP built-in server
 - `composer.json` - Project dependencies
 - `.env.sample` - Template for environment variables
-- `lib/` - Marketplace classes (SellerManager, SplitCalculator, Utils)
+- `lib/` - Embedded Payments classes (SellerManager, SplitCalculator, Utils)
 - `data/` - Mock seller data
 - `run.sh` - Convenience script to run the application
 
@@ -54,7 +54,7 @@ This implementation uses **backend tokenization** where:
 
 **Security Note**: This approach requires HTTPS in production and proper PCI DSS compliance measures.
 
-### Marketplace Fee Splitting
+### Embedded Payments Fee Splitting
 Automatic fee calculation and splitting:
 1. **Processing Fee**: 2.9% + $0.30 (standard payment processor fee)
 2. **Platform Fee**: Configurable 5-25% of transaction amount
@@ -62,7 +62,7 @@ Automatic fee calculation and splitting:
 
 ### Payment Processing Flow
 1. User fills out form with card details, amount, and seller
-2. Frontend sends all data to `/process-marketplace-payment`
+2. Frontend sends all data to `/process-embedded-payments-payment`
 3. Backend validates seller and calculates fee split
 4. Backend creates CreditCardData with card details
 5. Backend processes charge through Global Payments API
@@ -78,8 +78,8 @@ Comprehensive error handling:
 
 ## API Endpoints
 
-### POST /process-marketplace-payment
-Processes a marketplace payment with automatic fee splitting.
+### POST /process-embedded-payments-payment
+Processes an embedded payment with automatic fee splitting.
 
 Request Parameters:
 - `card_name` (string, required) - Cardholder name

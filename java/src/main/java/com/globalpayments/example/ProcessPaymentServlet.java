@@ -24,9 +24,9 @@ import java.io.IOException;
 import java.math.BigDecimal;
 
 /**
- * Marketplace Payment Processing Servlet
+ * Embedded Payments Processing Servlet
  *
- * This servlet demonstrates marketplace payment processing with fee splitting
+ * This servlet demonstrates embedded payments processing with fee splitting
  * using the Global Payments SDK. It handles card data from the frontend,
  * validates seller information, and processes payments with automatic fee split calculation.
  *
@@ -35,7 +35,7 @@ import java.math.BigDecimal;
  */
 
 @MultipartConfig
-@WebServlet(urlPatterns = {"/process-marketplace-payment"})
+@WebServlet(urlPatterns = {"/process-embedded-payments-payment"})
 public class ProcessPaymentServlet extends HttpServlet {
 
     private static final long serialVersionUID = 1L;
@@ -82,8 +82,8 @@ public class ProcessPaymentServlet extends HttpServlet {
     }
 
     /**
-     * Handles POST requests to /process-marketplace-payment endpoint.
-     * Processes marketplace payments with fee splitting using card data.
+     * Handles POST requests to /process-embedded-payments-payment endpoint.
+     * Processes embedded payments with fee splitting using card data.
      *
      * @param request The HTTP request containing payment details
      * @param response The HTTP response

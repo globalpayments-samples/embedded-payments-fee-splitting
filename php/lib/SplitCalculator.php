@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace MarketplaceFee;
+namespace EmbeddedPaymentsFee;
 
 /**
  * Fee Split Calculator
  *
- * Calculates marketplace fee splits for transactions
+ * Calculates embedded payments fee splits for transactions
  *
  * PHP version 7.4 or higher
  *
  * @category  Payment_Processing
- * @package   MarketplaceFee
+ * @package   EmbeddedPaymentsFee
  * @author    Global Payments
  * @license   MIT License
  * @link      https://github.com/globalpayments

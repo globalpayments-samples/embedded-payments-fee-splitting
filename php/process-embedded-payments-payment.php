@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 /**
- * Marketplace Payment Processing Script
+ * Embedded Payments Processing Script
  *
- * This script demonstrates marketplace payment processing with fee splitting
+ * This script demonstrates embedded payments processing with fee splitting
  * using the Global Payments SDK (GP API). It handles tokenized card data from
  * the Drop-In UI, validates seller information, and processes payments with
  * automatic fee split calculation.
@@ -13,7 +13,7 @@ declare(strict_types=1);
  * PHP version 7.4 or higher
  *
  * @category  Payment_Processing
- * @package   GlobalPayments_Marketplace
+ * @package   GlobalPayments_EmbeddedPayments
  * @author    Global Payments
  * @license   MIT License
  * @link      https://github.com/globalpayments
@@ -29,9 +29,9 @@ use GlobalPayments\Api\ServiceConfigs\Gateways\GpApiConfig;
 use GlobalPayments\Api\ServicesContainer;
 use GlobalPayments\Api\Entities\Enums\Environment;
 use GlobalPayments\Api\Entities\Enums\Channel;
-use MarketplaceFee\SellerManager;
-use MarketplaceFee\SplitCalculator;
-use MarketplaceFee\Utils;
+use EmbeddedPaymentsFee\SellerManager;
+use EmbeddedPaymentsFee\SplitCalculator;
+use EmbeddedPaymentsFee\Utils;
 
 ini_set('display_errors', '0');
 

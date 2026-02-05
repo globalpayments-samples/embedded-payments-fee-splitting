@@ -1,8 +1,8 @@
 /**
- * SplitCalculator - Calculates marketplace fee splits
+ * SplitCalculator - Calculates embedded payments fee splits
  *
  * Handles calculation of processing fees, platform fees, and seller payouts
- * for marketplace transactions.
+ * for transactions.
  *
  * @class
  */

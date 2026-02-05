@@ -1,7 +1,7 @@
 /**
- * Marketplace Payment Processing Application
+ * Embedded Payments Processing Application
  *
- * This Express application demonstrates marketplace payment processing with fee splitting
+ * This Express application demonstrates embedded payments processing with fee splitting
  * using the Global Payments SDK. It handles card data from the frontend, validates seller
  * information, and processes payments with automatic fee split calculation.
  */
@@ -56,9 +56,9 @@ const sanitizePostalCode = (postalCode) => {
 };
 
 /**
- * Marketplace payment processing endpoint with fee splitting
+ * Embedded payments processing endpoint with fee splitting
  */
-app.post('/process-marketplace-payment', upload.none(), async (req, res) => {
+app.post('/process-embedded-payments-payment', upload.none(), async (req, res) => {
     try {
         const {
             card_name,

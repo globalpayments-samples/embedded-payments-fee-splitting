@@ -1,4 +1,4 @@
-namespace MarketplaceFee.Models;
+namespace EmbeddedPaymentsFee.Models;
 
 public class SplitDetails
 {
