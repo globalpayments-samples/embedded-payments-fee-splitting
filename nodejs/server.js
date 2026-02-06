@@ -1,19 +1,25 @@
 /**
- * Global Payments SDK Template - Node.js
- * 
- * This Express application provides a starting template for Global Payments SDK integration.
- * Customize the endpoints and logic below for your specific use case.
+ * Embedded Payments Processing Application
+ *
+ * This Express application demonstrates embedded payments processing with fee splitting
+ * using the Global Payments SDK. It handles card data from the frontend, validates seller
+ * information, and processes payments with automatic fee split calculation.
  */
 
 import express from 'express';
 import * as dotenv from 'dotenv';
 import {
     ServicesContainer,
-    PorticoConfig,
+    GpApiConfig,
     Address,
     CreditCardData,
-    ApiError
+    ApiError,
+    Channel,
+    Environment
 } from 'globalpayments-api';
+import multer from 'multer';
+import SellerManager from './lib/SellerManager.js';
+import SplitCalculator from './lib/SplitCalculator.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -24,108 +30,159 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 8000;
 
-app.use(express.static('.')); // Serve static files
-app.use(express.urlencoded({ extended: true })); // Parse form data
-app.use(express.json()); // Parse JSON requests
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+// Configure multer for multipart/form-data parsing
+const upload = multer();
 
 // Configure Global Payments SDK with credentials and settings
-const config = new PorticoConfig();
-config.secretApiKey = process.env.SECRET_API_KEY;
-config.serviceUrl = 'https://cert.api2.heartlandportico.com'; // Use production URL for live transactions
+const config = new GpApiConfig();
+config.appId = process.env.GP_APP_ID;
+config.appKey = process.env.GP_APP_KEY;
+config.environment = process.env.GP_API_ENVIRONMENT === 'PRODUCTION'
+    ? 'production'
+    : 'test';
+config.channel = Channel.CardNotPresent;
+config.country = 'US';
 ServicesContainer.configureService(config);
 
 /**
  * Utility function to sanitize postal code
- * Customize validation logic as needed for your use case
  */
 const sanitizePostalCode = (postalCode) => {
+    if (!postalCode) return '';
     return postalCode.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 10);
 };
 
 /**
- * Config endpoint - provides public API key for client-side use
- * Customize response data as needed
+ * Embedded payments processing endpoint with fee splitting
  */
-app.get('/config', (req, res) => {
-    res.json({
-        success: true,
-        data: {
-            publicApiKey: process.env.PUBLIC_API_KEY
-            // Add other configuration data as needed
-        }
-    });
-});
-
-/**
- * Example payment processing endpoint
- * Customize this endpoint for your specific payment flow
- */
-app.post('/process-payment', async (req, res) => {
+app.post('/process-embedded-payments-payment', upload.none(), async (req, res) => {
     try {
-        // TODO: Add your payment processing logic here
-        // Example implementation for basic charge:
-        
-        if (!req.body.payment_token) {
-            throw new Error('Payment token is required');
+        const {
+            card_name,
+            card_number,
+            card_expiry,
+            card_cvv,
+            billing_zip,
+            amount,
+            seller_id,
+            platform_fee_rate
+        } = req.body;
+
+        // Validate required fields
+        if (!card_name || !card_number || !card_expiry || !card_cvv ||
+            !billing_zip || !amount || !seller_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
+            });
         }
 
+        const amountNum = parseFloat(amount);
+        if (amountNum < 0.50) {
+            return res.status(400).json({
+                success: false,
+                message: 'Amount must be at least $0.50'
+            });
+        }
+
+        // Validate seller
+        if (!SellerManager.isValidSeller(seller_id)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid seller selected'
+            });
+        }
+
+        const seller = SellerManager.getSellerById(seller_id);
+        const platformFeeRate = platform_fee_rate ? parseFloat(platform_fee_rate) : 10.0;
+
+        // Calculate split
+        const calculator = new SplitCalculator(platformFeeRate);
+        const splitDetails = calculator.calculateSplit(amountNum);
+        splitDetails.sellerId = seller_id;
+        splitDetails.sellerName = seller.name;
+
+        // Parse expiry date (MM/YY format)
+        const expiryParts = card_expiry.split('/');
+        if (expiryParts.length !== 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid expiry date format. Use MM/YY'
+            });
+        }
+
+        const expiryMonth = expiryParts[0].padStart(2, '0');
+        const expiryYear = '20' + expiryParts[1];
+
+        // Initialize payment data with card details
         const card = new CreditCardData();
-        card.token = req.body.payment_token;
+        card.cardHolderName = card_name;
+        card.number = card_number.replace(/\s/g, '');
+        card.expMonth = expiryMonth;
+        card.expYear = expiryYear;
+        card.cvn = card_cvv;
 
-        // Customize amount and other parameters as needed
-        const amount = req.body.amount || 10.00;
+        const address = new Address();
+        address.postalCode = sanitizePostalCode(billing_zip);
 
-        // Add billing address if needed
-        if (req.body.billing_zip) {
-            const address = new Address();
-            address.postalCode = sanitizePostalCode(req.body.billing_zip);
-            
-            const response = await card.charge(amount)
-                .withAllowDuplicates(true)
-                .withCurrency('USD')
-                .withAddress(address)
-                .execute();
-                
-            // Handle response...
-            res.json({
-                success: true,
-                message: 'Payment processed successfully',
-                data: { transactionId: response.transactionId }
-            });
-        } else {
-            // Process without address
-            const response = await card.charge(amount)
-                .withAllowDuplicates(true)
-                .withCurrency('USD')
-                .execute();
-                
-            res.json({
-                success: true,
-                message: 'Payment processed successfully',
-                data: { transactionId: response.transactionId }
+        // Process payment
+        const response = await card.charge(amountNum)
+            .withAllowDuplicates(true)
+            .withCurrency('USD')
+            .withAddress(address)
+            .execute();
+
+        if (!response || (response.responseCode !== '00' && response.responseCode !== 'SUCCESS')) {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment processing failed',
+                error: {
+                    code: 'PAYMENT_DECLINED',
+                    details: response?.responseMessage || 'Transaction declined'
+                }
             });
         }
 
+        res.json({
+            success: true,
+            message: `Payment successful! Transaction ID: ${response.transactionId}`,
+            data: {
+                transactionId: response.transactionId,
+                amount: amountNum,
+                currency: 'USD',
+                splitDetails
+            }
+        });
     } catch (error) {
+        if (error instanceof ApiError || error.name === 'ApiError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Payment processing failed',
+                error: {
+                    code: 'API_ERROR',
+                    details: error.message
+                }
+            });
+        }
+
         res.status(500).json({
             success: false,
-            message: 'Payment processing failed',
-            error: error.message
+            message: 'Internal server error',
+            error: {
+                code: 'SERVER_ERROR',
+                details: error.message
+            }
         });
     }
 });
 
-/**
- * Add your custom endpoints here
- * Examples:
- * - app.post('/authorize', ...) // Authorization only
- * - app.post('/capture', ...)   // Capture authorized payment
- * - app.post('/refund', ...)    // Process refund
- * - app.get('/transaction/:id', ...) // Get transaction details
- */
+// Serve static files - MUST come after API routes
+app.use(express.static('.'));
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${port}`);
-    console.log(`Customize this template for your use case!`);
 });

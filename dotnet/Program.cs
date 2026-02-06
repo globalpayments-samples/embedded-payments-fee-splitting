@@ -1,7 +1,10 @@
 using GlobalPayments.Api;
 using GlobalPayments.Api.Entities;
 using GlobalPayments.Api.PaymentMethods;
+using GlobalPayments.Api.Services;
 using dotenv.net;
+using EmbeddedPaymentsFee.Services;
+using EmbeddedPaymentsFee.Models;
 
 namespace CardPaymentSample;
 
@@ -23,20 +26,38 @@ public class Program
         
         var app = builder.Build();
 
-        // Configure static file serving for the payment form
-        app.UseDefaultFiles();
-        app.UseStaticFiles();
-        
         // Configure the SDK on startup
         ConfigureGlobalPaymentsSDK();
 
+        // Configure API endpoints BEFORE static files
         ConfigureEndpoints(app);
-        
+
+        // Configure static file serving - MUST come after API endpoints
+        app.UseDefaultFiles();
+        app.UseStaticFiles();
+
         var port = System.Environment.GetEnvironmentVariable("PORT") ?? "8000";
         app.Urls.Add($"http://0.0.0.0:{port}");
-        
+
         app.Run();
     }
+
+    /// <summary>
+    /// Gets an environment variable and strips inline comments
+    /// </summary>
+    /// <param name="key">The environment variable key</param>
+    /// <returns>The environment variable value with comments removed</returns>
+    private static string GetEnvVar(string key)
+    {
+        var value = System.Environment.GetEnvironmentVariable(key) ?? string.Empty;
+        var commentIndex = value.IndexOf('#');
+        if (commentIndex >= 0)
+        {
+            value = value[..commentIndex];
+        }
+        return value.Trim();
+    }
+
 
     /// <summary>
     /// Configures the Global Payments SDK with necessary credentials and settings.
@@ -44,13 +65,17 @@ public class Program
     /// </summary>
     private static void ConfigureGlobalPaymentsSDK()
     {
-        ServicesContainer.ConfigureService(new PorticoConfig
+        var config = new GpApiConfig
         {
-            SecretApiKey = System.Environment.GetEnvironmentVariable("SECRET_API_KEY"),
-            DeveloperId = "000000",
-            VersionNumber = "0000",
-            ServiceUrl = "https://cert.api2.heartlandportico.com"
-        });
+            AppId = GetEnvVar("GP_APP_ID"),
+            AppKey = GetEnvVar("GP_APP_KEY"),
+            Environment = "PRODUCTION".Equals(GetEnvVar("GP_API_ENVIRONMENT"))
+                ? GlobalPayments.Api.Entities.Environment.PRODUCTION
+                : GlobalPayments.Api.Entities.Environment.TEST,
+            Channel = GlobalPayments.Api.Entities.Channel.CardNotPresent,
+            Country = "US"
+        };
+        ServicesContainer.ConfigureService(config);
     }
 
     /// <summary>
@@ -59,16 +84,7 @@ public class Program
     /// <param name="app">The web application to configure</param>
     private static void ConfigureEndpoints(WebApplication app)
     {
-        // Configure HTTP endpoints
-        app.MapGet("/config", () => Results.Ok(new
-        { 
-            success = true,
-            data = new {
-                publicApiKey = System.Environment.GetEnvironmentVariable("PUBLIC_API_KEY")
-            }
-        }));
-
-        ConfigurePaymentEndpoint(app);
+        ConfigureEmbeddedPaymentsEndpoint(app);
     }
 
     /// <summary>
@@ -91,49 +107,92 @@ public class Program
     }
 
     /// <summary>
-    /// Configures the payment processing endpoint that handles card transactions.
+    /// Configures the embedded payments processing endpoint with automatic fee splitting.
     /// </summary>
     /// <param name="app">The web application to configure</param>
-    private static void ConfigurePaymentEndpoint(WebApplication app)
+    private static void ConfigureEmbeddedPaymentsEndpoint(WebApplication app)
     {
-        app.MapPost("/process-payment", async (HttpContext context) =>
+        app.MapPost("/process-embedded-payments-payment", async (HttpContext context) =>
         {
             // Parse form data from the request
             var form = await context.Request.ReadFormAsync();
+            var cardName = form["card_name"].ToString();
+            var cardNumber = form["card_number"].ToString();
+            var cardExpiry = form["card_expiry"].ToString();
+            var cardCvv = form["card_cvv"].ToString();
             var billingZip = form["billing_zip"].ToString();
-            var token = form["payment_token"].ToString();
             var amountStr = form["amount"].ToString();
+            var sellerId = form["seller_id"].ToString();
+            var platformFeeRateStr = form["platform_fee_rate"].ToString();
 
-            // Validate required fields are present
-            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(billingZip) || string.IsNullOrEmpty(amountStr))
+            // Validate required fields
+            if (string.IsNullOrEmpty(cardName) ||
+                string.IsNullOrEmpty(cardNumber) ||
+                string.IsNullOrEmpty(cardExpiry) ||
+                string.IsNullOrEmpty(cardCvv) ||
+                string.IsNullOrEmpty(billingZip) ||
+                string.IsNullOrEmpty(amountStr) ||
+                string.IsNullOrEmpty(sellerId))
             {
                 return Results.BadRequest(new {
                     success = false,
-                    message = "Payment processing failed",
-                    error = new {
-                        code = "VALIDATION_ERROR",
-                        details = "Missing required fields"
-                    }
+                    message = "Missing required fields"
                 });
             }
 
             // Validate and parse amount
-            if (!decimal.TryParse(amountStr, out var amount) || amount <= 0)
+            if (!decimal.TryParse(amountStr, out var amount) || amount < 0.50m)
             {
                 return Results.BadRequest(new {
                     success = false,
-                    message = "Payment processing failed",
-                    error = new {
-                        code = "VALIDATION_ERROR",
-                        details = "Amount must be a positive number"
-                    }
+                    message = "Amount must be at least $0.50"
                 });
             }
 
-            // Initialize payment data using tokenized card information
+            // Validate seller
+            if (!SellerManager.IsValidSeller(sellerId))
+            {
+                return Results.BadRequest(new {
+                    success = false,
+                    message = "Invalid seller selected"
+                });
+            }
+
+            var seller = SellerManager.GetSellerById(sellerId);
+
+            // Parse platform fee rate (default to 10.0 if not provided)
+            if (!double.TryParse(platformFeeRateStr, out var platformFeeRate))
+            {
+                platformFeeRate = 10.0;
+            }
+
+            // Calculate fee split
+            var calculator = new SplitCalculator(platformFeeRate);
+            var splitDetails = calculator.CalculateSplit((double)amount);
+            splitDetails.SellerId = sellerId;
+            splitDetails.SellerName = seller.Name;
+
+            // Parse expiry date (MM/YY format)
+            var expiryParts = cardExpiry.Split('/');
+            if (expiryParts.Length != 2)
+            {
+                return Results.BadRequest(new {
+                    success = false,
+                    message = "Invalid expiry date format. Use MM/YY"
+                });
+            }
+
+            var expiryMonth = int.Parse(expiryParts[0].PadLeft(2, '0'));
+            var expiryYear = int.Parse("20" + expiryParts[1]);
+
+            // Initialize payment data with card details
             var card = new CreditCardData
             {
-                Token = token
+                CardHolderName = cardName,
+                Number = cardNumber.Replace(" ", ""),
+                ExpMonth = expiryMonth,
+                ExpYear = expiryYear,
+                Cvn = cardCvv
             };
 
             // Create billing address for AVS verification
@@ -144,15 +203,28 @@ public class Program
 
             try
             {
-                // Process the payment transaction using the provided amount
+                // Process the payment transaction
                 var response = card.Charge(amount)
                     .WithAllowDuplicates(true)
                     .WithCurrency("USD")
                     .WithAddress(address)
                     .Execute();
 
-                // Verify transaction was successful
-                if (response.ResponseCode != "00")
+                // Check for null response
+                if (response == null)
+                {
+                    return Results.BadRequest(new {
+                        success = false,
+                        message = "Payment processing failed",
+                        error = new {
+                            code = "NULL_RESPONSE",
+                            details = "Payment gateway returned null response"
+                        }
+                    });
+                }
+
+                // Verify transaction was successful (GP API returns 'SUCCESS' or '00')
+                if (response.ResponseCode != "00" && response.ResponseCode != "SUCCESS")
                 {
                     return Results.BadRequest(new {
                         success = false,
@@ -164,16 +236,19 @@ public class Program
                     });
                 }
 
-                // Return success response with transaction ID
+                // Return success response with transaction ID and split details
                 return Results.Ok(new
                 {
                     success = true,
                     message = $"Payment successful! Transaction ID: {response.TransactionId}",
                     data = new {
-                        transactionId = response.TransactionId
+                        transactionId = response.TransactionId,
+                        amount = amount,
+                        currency = "USD",
+                        splitDetails = splitDetails
                     }
                 });
-            } 
+            }
             catch (ApiException ex)
             {
                 // Handle payment processing errors

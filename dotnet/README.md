@@ -1,28 +1,32 @@
-# .NET Card Payment Example
+# .NET Embedded Payments Fee Splitting Example
 
-This example demonstrates card payment processing using ASP.NET Core and the Global Payments SDK.
+This example demonstrates embedded payments processing with automatic fee splitting using .NET and the Global Payments SDK.
 
 ## Requirements
 
 - .NET 6.0 or later
 - Global Payments account and API credentials
+- **HTTPS required for production** (PCI DSS compliance)
 
 ## Project Structure
 
-- `Program.cs` - Main application file containing server setup and payment processing
-- `wwwroot/index.html` - Client-side payment form
+- `Program.cs` - Embedded payments processor with fee splitting
+- `wwwroot/index.html` - Frontend payment form
 - `.env.sample` - Template for environment variables
+- `Models/` - Embedded Payments classes (Seller, SplitDetails)
+- `Services/` - Business logic (SellerManager, SplitCalculator)
+- `data/` - Mock seller data
 - `run.sh` - Convenience script to run the application
-- `appsettings.json` - Application configuration file
 
 ## Setup
 
 1. Clone this repository
 2. Copy `.env.sample` to `.env`
-3. Update `.env` with your Global Payments credentials:
+3. Update `.env` with your Global Payments API credentials:
    ```
-   PUBLIC_API_KEY=pk_test_xxx
-   SECRET_API_KEY=sk_test_xxx
+   GP_APP_ID=your_gp_api_app_id_here
+   GP_APP_KEY=your_gp_api_app_key_here
+   GP_API_ENVIRONMENT=TEST
    ```
 4. Install dependencies:
    ```bash
@@ -36,73 +40,111 @@ This example demonstrates card payment processing using ASP.NET Core and the Glo
    ```bash
    dotnet run
    ```
+6. Open your browser to http://localhost:8000
 
 ## Implementation Details
 
-### Server Setup
-The application uses ASP.NET Core's minimal API approach to create a lightweight web server that:
-- Serves static files from wwwroot directory
-- Processes payment requests
-- Provides configuration endpoint for client-side SDK
+### Backend Tokenization Approach
+This implementation uses **backend tokenization** where:
+- Frontend sends card data directly to the .NET backend
+- Backend tokenizes and processes payment using Global Payments SDK
+- No client-side tokenization or public API keys needed
 
-### SDK Configuration
-The Global Payments SDK is configured using environment variables and the PorticoConfig class:
-- Loads credentials from .env file
-- Sets up service URL for API communication
-- Configures developer identification
+**Security Note**: This approach requires HTTPS in production and proper PCI DSS compliance measures.
 
-### Payment Processing
-Payment processing flow:
-1. Client submits payment token and billing zip
-2. Server creates CreditCardData with token
-3. Creates Address with postal code
-4. Processes $10 USD charge
-5. Returns success/error response
+### Embedded Payments Fee Splitting
+Automatic fee calculation and splitting:
+1. **Processing Fee**: 2.9% + $0.30 (standard payment processor fee)
+2. **Platform Fee**: Configurable 5-25% of transaction amount
+3. **Seller Payout**: Remaining amount after fees deducted
+
+### Payment Processing Flow
+1. User fills out form with card details, amount, and seller
+2. Frontend sends all data to `/process-embedded-payments-payment`
+3. Backend validates seller and calculates fee split
+4. Backend creates CreditCardData with card details
+5. Backend processes charge through Global Payments API
+6. Backend returns transaction ID and split details
+7. Frontend displays success with breakdown
 
 ### Error Handling
-Implements comprehensive error handling:
-- Catches and processes API exceptions
-- Returns appropriate HTTP status codes
-- Provides meaningful error messages
+Comprehensive error handling:
+- Field validation before processing
+- API exception catching and logging
+- User-friendly error messages
+- Detailed server-side error logs
 
 ## API Endpoints
 
-### GET /config
-Returns public API key for client-side SDK initialization.
-
-Response:
-```json
-{
-    "publicApiKey": "pk_test_xxx"
-}
-```
-
-### POST /process-payment
-Processes a payment using the provided token and billing information.
+### POST /process-embedded-payments-payment
+Processes an embedded payment with automatic fee splitting.
 
 Request Parameters:
-- `payment_token` (string, required) - Token from client-side SDK
+- `card_name` (string, required) - Cardholder name
+- `card_number` (string, required) - Card number (no spaces)
+- `card_expiry` (string, required) - Expiry date (MM/YY format)
+- `card_cvv` (string, required) - CVV code
+- `amount` (float, required) - Transaction amount (min $0.50)
+- `seller_id` (string, required) - Seller identifier
+- `platform_fee_rate` (float, optional) - Platform fee percentage (5-25%, default 10%)
 - `billing_zip` (string, required) - Billing postal code
 
 Response (Success):
 ```json
 {
-    "message": "Payment successful! Transaction ID: xxx"
+  "success": true,
+  "message": "Payment successful! Transaction ID: xxx",
+  "data": {
+    "transactionId": "xxx",
+    "amount": 100.00,
+    "currency": "USD",
+    "splitDetails": {
+      "amount": 100.00,
+      "processingFee": 3.20,
+      "platformFee": 10.00,
+      "sellerPayout": 86.80,
+      "sellerId": "seller_001",
+      "sellerName": "Tech Gadgets Store"
+    }
+  }
 }
 ```
 
 Response (Error):
 ```json
 {
-    "detail": "Error message"
+  "success": false,
+  "message": "Payment processing failed",
+  "error": {
+    "code": "API_ERROR",
+    "details": "Error message"
+  }
 }
 ```
 
 ## Security Considerations
 
-This example demonstrates basic implementation. For production use, consider:
-- Implementing additional input validation
-- Adding request rate limiting
-- Including security headers
-- Implementing proper logging
-- Adding payment fraud prevention measures
+**CRITICAL FOR PRODUCTION:**
+
+### PCI DSS Compliance
+- **HTTPS Required**: NEVER transmit card data over HTTP
+- **No Card Data Storage**: Never log or store complete card numbers, CVV, or PINs
+- **Server Security**: Ensure proper server hardening and security patches
+- **Network Segmentation**: Isolate payment processing from other systems
+
+### Additional Security Measures
+- Input validation and sanitization on all user inputs
+- Rate limiting to prevent abuse
+- Security headers (CSP, HSTS, X-Frame-Options)
+- CSRF protection for form submissions
+- Detailed error logging (without exposing sensitive data)
+- Regular security audits and penetration testing
+- Fraud detection and prevention measures
+
+### Alternative Approach
+For simplified PCI compliance, consider:
+- Using hosted payment pages
+- Implementing client-side tokenization (requires different setup)
+- Using payment gateways that handle card data entirely
+
+**Note**: This example is for development/testing only. Production implementations require proper security review and PCI DSS compliance certification.

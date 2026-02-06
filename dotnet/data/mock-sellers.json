@@ -1,0 +1,22 @@
+{
+  "sellers": [
+    {
+      "id": "seller_001",
+      "name": "Tech Gadgets Store",
+      "platformFeeRate": 10.0,
+      "description": "Electronics and gadgets"
+    },
+    {
+      "id": "seller_002",
+      "name": "Fashion Boutique",
+      "platformFeeRate": 10.0,
+      "description": "Clothing and accessories"
+    },
+    {
+      "id": "seller_003",
+      "name": "Home Goods Co",
+      "platformFeeRate": 10.0,
+      "description": "Furniture and home decor"
+    }
+  ]
+}

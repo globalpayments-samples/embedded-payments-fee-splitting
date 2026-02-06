@@ -31,158 +31,119 @@
 
     <div class="gp-container">
         <!-- Page Title -->
-        <h1 class="gp-page-title">SDK Integration Examples</h1>
-        <p class="gp-page-subtitle">Explore comprehensive examples of Global Payments SDK implementations across different payment scenarios.</p>
+        <h1 class="gp-page-title">Embedded Payments Fee Splitting Demo</h1>
+        <p class="gp-page-subtitle">Process payments with automatic fee splitting between platform and seller.</p>
 
-        <!-- Tabs -->
-        <div class="gp-tabs">
-            <div class="gp-tab-list">
-                <button class="gp-tab-button active" data-tab="payment-form">Payment Form</button>
-                <button class="gp-tab-button" data-tab="tokenization">Tokenization</button>
-                <button class="gp-tab-button" data-tab="webhooks">Webhooks</button>
-                <button class="gp-tab-button" data-tab="recurring">Recurring Payments</button>
-            </div>
-
-            <!-- Payment Form Tab -->
-            <div class="gp-tab-content active" id="payment-form">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Credit Card Payment Form</h2>
-                        <p class="gp-card-description">
-                            Secure payment processing using Global Payments tokenization with client-side form validation.
-                        </p>
-                    </div>
-                    
-                    <form id="payment-form" class="gp-form" action="/process-payment" method="POST">
-                        <div class="gp-form-group">
-                            <label for="amount" class="gp-label">Amount ($):</label>
-                            <input type="number" id="amount" name="amount" class="gp-input" min="0.01" step="0.01" value="10.00" required>
-                        </div>
-                        
-                        <div class="gp-form-group">
-                            <label for="billing_zip" class="gp-label">Billing Zip Code:</label>
-                            <input type="text" id="billing_zip" name="billing_zip" class="gp-input" placeholder="12345" required>
-                        </div>
-
-                        <div class="gp-form-group">
-                            <label class="gp-label">Credit Card Information:</label>
-                            <div id="credit-card"></div>
-                        </div>
-
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Process Payment
-                        </button>
-                    </form>
+        <!-- Payment Form Section -->
+        <div id="payment-form-section">
+            <div class="gp-card">
+                <div class="gp-card-header">
+                    <h2 class="gp-card-title">Embedded Payments Fee Splitting</h2>
+                    <p class="gp-card-description">
+                        Process payments with automatic fee splitting between platform and seller.
+                    </p>
                 </div>
-            </div>
 
-            <!-- Tokenization Tab -->
-            <div class="gp-tab-content" id="tokenization">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Card Tokenization</h2>
-                        <p class="gp-card-description">
-                            Securely tokenize payment methods for future use without storing sensitive card data.
-                        </p>
-                    </div>
-                    
-                    <div class="gp-alert gp-alert-info">
-                        <strong>Info:</strong> Tokens can be stored securely and used for future transactions without handling raw card data.
+                <form id="payment-form" class="gp-form" method="POST">
+                    <div class="gp-form-group">
+                        <label for="amount" class="gp-label">Transaction Amount ($):</label>
+                        <input type="number" id="amount" name="amount" class="gp-input" min="0.50" step="0.01" value="100.00" required>
                     </div>
 
-                    <form id="tokenization-form" class="gp-form">
+                    <div class="gp-form-group">
+                        <label for="seller_id" class="gp-label">Select Seller:</label>
+                        <select id="seller_id" name="seller_id" class="gp-select" required>
+                            <!-- Options populated by JavaScript with seller_001 as default -->
+                        </select>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <label for="platform_fee_rate" class="gp-label">Platform Fee (%):</label>
+                        <input type="number" id="platform_fee_rate" name="platform_fee_rate" class="gp-input" min="5" max="25" step="1" value="10" required>
+                        <small class="gp-help-text">Adjustable between 5-25%</small>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <label for="billing_zip" class="gp-label">Billing Zip Code:</label>
+                        <input type="text" id="billing_zip" name="billing_zip" class="gp-input" value="12345" placeholder="12345" required>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <label for="card_name" class="gp-label">Cardholder Name:</label>
+                        <input type="text" id="card_name" name="card_name" class="gp-input" placeholder="John Doe" required>
+                    </div>
+
+                    <div class="gp-form-group">
+                        <label for="card_number" class="gp-label">Card Number:</label>
+                        <input type="text" id="card_number" name="card_number" class="gp-input" placeholder="4263970000005262" maxlength="19" required>
+                        <small class="gp-help-text">Test card: 4263970000005262</small>
+                    </div>
+
+                    <div class="gp-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <div class="gp-form-group">
-                            <label class="gp-label">Card Information for Tokenization:</label>
-                            <div id="credit-card-token"></div>
+                            <label for="card_expiry" class="gp-label">Expiry (MM/YY):</label>
+                            <input type="text" id="card_expiry" name="card_expiry" class="gp-input" placeholder="12/26" maxlength="5" required>
                         </div>
-
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Generate Token
-                        </button>
-                    </form>
-
-                    <div id="token-result" class="gp-hidden">
-                        <h3 class="gp-card-title gp-mt-lg">Generated Token:</h3>
-                        <div class="gp-code-block" id="token-display"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Webhooks Tab -->
-            <div class="gp-tab-content" id="webhooks">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Webhook Integration</h2>
-                        <p class="gp-card-description">
-                            Configure and test webhook endpoints for real-time payment notifications.
-                        </p>
-                    </div>
-                    
-                    <div class="gp-code-block">
-// Example webhook handler
-app.post('/webhook', (req, res) => {
-    const signature = req.headers['x-gp-signature'];
-    const payload = req.body;
-    
-    // Verify webhook signature
-    if (verifySignature(payload, signature)) {
-        handlePaymentEvent(payload);
-        res.status(200).send('OK');
-    } else {
-        res.status(400).send('Invalid signature');
-    }
-});
-                    </div>
-
-                    <div class="gp-alert gp-alert-warning">
-                        <strong>Security:</strong> Always verify webhook signatures to ensure requests are from Global Payments.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recurring Payments Tab -->
-            <div class="gp-tab-content" id="recurring">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Recurring Payments</h2>
-                        <p class="gp-card-description">
-                            Set up subscription billing and recurring payment schedules.
-                        </p>
-                    </div>
-                    
-                    <form id="recurring-form" class="gp-form">
-                        <div class="gp-form-row">
-                            <div class="gp-form-group">
-                                <label for="subscription-amount" class="gp-label">Monthly Amount ($):</label>
-                                <input type="number" id="subscription-amount" name="subscription-amount" class="gp-input" min="1.00" step="0.01" value="29.99" required>
-                            </div>
-                            
-                            <div class="gp-form-group">
-                                <label for="billing-cycle" class="gp-label">Billing Cycle:</label>
-                                <select id="billing-cycle" name="billing-cycle" class="gp-select" required>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="annually">Annually</option>
-                                </select>
-                            </div>
-                        </div>
-
                         <div class="gp-form-group">
-                            <label class="gp-label">Payment Method:</label>
-                            <div id="credit-card-recurring"></div>
+                            <label for="card_cvv" class="gp-label">CVV:</label>
+                            <input type="text" id="card_cvv" name="card_cvv" class="gp-input" placeholder="123" maxlength="4" required>
                         </div>
+                    </div>
 
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Set Up Subscription
-                        </button>
-                    </form>
+                    <div class="gp-form-group">
+                        <button type="submit" class="gp-button gp-button-primary" id="submit-btn">Process Payment</button>
+                    </div>
+                </form>
+
+                <!-- Split Result Section (initially hidden) -->
+                <div id="split-result" class="gp-mt-lg" style="display: none;">
+                    <div class="gp-card-header">
+                        <h3 class="gp-card-title">✓ Payment Successful</h3>
+                        <p class="gp-text-muted">Transaction ID: <span id="txn-id"></span></p>
+                    </div>
+
+                    <table class="gp-table">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th style="text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Transaction Amount</strong></td>
+                                <td style="text-align: right;"><strong id="split-amount"></strong></td>
+                            </tr>
+                            <tr>
+                                <td>Processing Fee (<span id="proc-fee-rate"></span>% + $<span id="proc-fee-fixed"></span>)</td>
+                                <td style="text-align: right;" id="split-processing-fee"></td>
+                            </tr>
+                            <tr>
+                                <td>Platform Fee (<span id="split-platform-rate"></span>%)</td>
+                                <td style="text-align: right;" id="split-platform-fee"></td>
+                            </tr>
+                            <tr style="border-top: 2px solid #000;">
+                                <td>
+                                    <strong>Seller Payout</strong><br>
+                                    <small class="gp-text-muted">Paid to: <span id="split-seller-name"></span></small>
+                                </td>
+                                <td style="text-align: right; color: #28a745;">
+                                    <strong id="split-seller-payout"></strong>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <button type="button" class="gp-button gp-button-secondary gp-button-full gp-mt-md" onclick="resetPaymentForm()">
+                        Clear Results & Process Another Payment
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Footer -->
-    <!-- 
+    <!--
         DEVELOPER NOTE: Update the following footer information to match your business:
         - Company name and copyright year
         - Update all links to point to your actual Terms of Service, Privacy Policy, and Refund Policy pages
@@ -208,6 +169,140 @@ app.post('/webhook', (req, res) => {
         </div>
     </footer>
 
-    <script src="https://globalpayments-samples.github.io/js/script.js"></script>
+    <script>
+// Load sellers into dropdown
+async function loadSellers() {
+    // Hardcoded sellers (matches mock-sellers.json)
+    const sellers = [
+        { id: 'seller_001', name: 'Tech Gadgets Store' },
+        { id: 'seller_002', name: 'Fashion Boutique' },
+        { id: 'seller_003', name: 'Home Goods Co' }
+    ];
+
+    const select = document.getElementById('seller_id');
+    sellers.forEach(seller => {
+        const option = document.createElement('option');
+        option.value = seller.id;
+        option.textContent = seller.name;
+
+        // Set Tech Gadgets Store as default
+        if (seller.id === 'seller_001') {
+            option.selected = true;
+        }
+
+        select.appendChild(option);
+    });
+}
+
+// Format card number with spaces
+function formatCardNumber(input) {
+    let value = input.value.replace(/\s/g, '');
+    let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+    input.value = formattedValue;
+}
+
+// Format expiry date as MM/YY
+function formatExpiry(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value.length >= 2) {
+        value = value.slice(0, 2) + '/' + value.slice(2, 4);
+    }
+    input.value = value;
+}
+
+// Initialize payment form
+async function initializeEmbeddedPaymentsForm() {
+    await loadSellers();
+
+    // Add input formatting
+    const cardNumberInput = document.getElementById('card_number');
+    const expiryInput = document.getElementById('card_expiry');
+
+    cardNumberInput.addEventListener('input', (e) => formatCardNumber(e.target));
+    expiryInput.addEventListener('input', (e) => formatExpiry(e.target));
+
+    // Handle form submission
+    const form = document.getElementById('payment-form');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Disable submit button to prevent double submission
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Processing...';
+
+        try {
+            // Collect form values
+            const formData = new FormData();
+            formData.append('card_name', document.getElementById('card_name').value);
+            formData.append('card_number', document.getElementById('card_number').value.replace(/\s/g, ''));
+            formData.append('card_expiry', document.getElementById('card_expiry').value);
+            formData.append('card_cvv', document.getElementById('card_cvv').value);
+            formData.append('amount', document.getElementById('amount').value);
+            formData.append('seller_id', document.getElementById('seller_id').value);
+            formData.append('platform_fee_rate', document.getElementById('platform_fee_rate').value);
+            formData.append('billing_zip', document.getElementById('billing_zip').value);
+
+            // Submit to embedded payments endpoint
+            const paymentResponse = await fetch('/process-embedded-payments-payment', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await paymentResponse.json();
+
+            if (result.success) {
+                displaySplitResults(result.data);
+                form.reset();
+                await loadSellers(); // Reset seller dropdown
+            } else {
+                alert('Payment failed: ' + (result.error?.details || result.message));
+            }
+        } catch (error) {
+            alert('Error processing payment: ' + error.message);
+        } finally {
+            // Re-enable submit button
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Process Payment';
+        }
+    });
+}
+
+// Display split results
+function displaySplitResults(data) {
+    const split = data.splitDetails;
+
+    // Keep form visible, show results below
+    document.getElementById('split-result').style.display = 'block';
+
+    // Populate results
+    document.getElementById('txn-id').textContent = data.transactionId;
+    document.getElementById('split-amount').textContent = '$' + split.amount.toFixed(2);
+    document.getElementById('proc-fee-rate').textContent = split.processingFeeRate.toFixed(1);
+    document.getElementById('proc-fee-fixed').textContent = split.processingFeeFixed.toFixed(2);
+    document.getElementById('split-processing-fee').textContent = '-$' + split.processingFee.toFixed(2);
+    document.getElementById('split-platform-rate').textContent = split.platformFeeRate.toFixed(0);
+    document.getElementById('split-platform-fee').textContent = '-$' + split.platformFee.toFixed(2);
+    document.getElementById('split-seller-name').textContent = split.sellerName;
+    document.getElementById('split-seller-payout').textContent = '$' + split.sellerPayout.toFixed(2);
+
+    // Scroll to results
+    document.getElementById('split-result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Reset form for another payment
+function resetPaymentForm() {
+    document.getElementById('split-result').style.display = 'none';
+    document.getElementById('payment-form').reset();
+    document.getElementById('amount').value = '100.00';
+    document.getElementById('platform_fee_rate').value = '10';
+    document.getElementById('seller_id').value = 'seller_001'; // Reset to default
+    document.getElementById('billing_zip').value = '12345'; // Reset to default
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', initializeEmbeddedPaymentsForm);
+    </script>
 </body>
 </html>
