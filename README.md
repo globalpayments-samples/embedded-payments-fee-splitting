@@ -60,7 +60,7 @@ The `platform_fee_rate` defaults to 10% but can be passed per-request (valid ran
 ## Prerequisites
 
 - Global Payments developer account
-- GP-API credentials (`GP_APP_ID` and `GP_APP_KEY`) from the [developer portal](https://developer.globalpay.com/)
+- GP-API credentials (`GP_APP_ID` and `GP_APP_KEY`) from the [developer portal](https://developer.globalpayments.com/)
 - Docker, or runtime for your chosen language (PHP 8.0+, Node.js 18+, .NET 9+, Java 17+)
 
 ## Quick Start
@@ -169,7 +169,7 @@ Processes a charge and returns the transaction ID with a full fee split breakdow
 ```json
 {
   "card_name": "Jane Doe",
-  "card_number": "4263970000005262",
+  "card_number": "4263982640269299",
   "card_expiry": "12/26",
   "card_cvv": "123",
   "billing_zip": "12345",
@@ -340,18 +340,18 @@ ServicesContainer.configureService(config);
 | `GP_API_ENVIRONMENT` | `TEST` or `PRODUCTION` | no | `TEST` |
 | `PLATFORM_FEE_RATE` | Default platform fee percentage (5–25) | no | `10` |
 
-Obtain credentials from your [Global Payments developer account](https://developer.globalpay.com/).
+Obtain credentials from your [Global Payments developer account](https://developer.globalpayments.com/).
 
 ## Test Cards
 
 | Brand | Card Number | CVV | Expiry |
 |-------|-------------|-----|--------|
-| Visa | 4263970000005262 | 123 | Any future date |
-| Mastercard | 5425230000004415 | 123 | Any future date |
+| Visa | 4263982640269299 | 123 | Any future date |
+| Mastercard | 5425233424241200 | 123 | Any future date |
 | Discover | 6011000000000087 | 123 | Any future date |
 | Amex | 374101000000608 | 1234 | Any future date |
 
-Additional test cards: [developer.globalpay.com/resources/test-cards](https://developer.globalpay.com/resources/test-cards)
+Additional test cards: [developer.globalpayments.com/resources/test-cards](https://developer.globalpayments.com/resources/test-cards)
 
 ## Project Structure
 
@@ -440,9 +440,9 @@ Requires .NET 9+. Confirm with `dotnet --version`. Run `dotnet restore` to pull 
 
 ## External Resources
 
-- [Global Payments Developer Portal](https://developer.globalpay.com/)
-- [GP-API Documentation](https://developer.globalpay.com/ecommerce)
-- [Test Cards](https://developer.globalpay.com/resources/test-cards)
+- [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- [GP-API Documentation](https://developer.globalpayments.com/api/references-overview)
+- [Test Cards](https://developer.globalpayments.com/resources/test-cards)
 
 ## License
 
