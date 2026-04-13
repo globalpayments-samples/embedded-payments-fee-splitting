@@ -1,6 +1,6 @@
 # Embedded Payments — Fee Splitting
 
-Complete implementation of an embedded payments integration with automatic fee splitting across 4 programming languages. Uses the Global Payments GP-API to process card payments and calculate per-transaction splits between a platform and its sellers — all without hosted payment pages or client-side tokenization.
+Complete implementation of an embedded payments integration with automatic fee splitting across 4 programming languages. Uses the Global Payments GP-API to process card payments and calculate per-transaction splits between a platform and its sellers — all without hosted payment pages or client-side tokenization. All implementations use the official Global Payments SDK (`GpApiConfig`).
 
 This project targets marketplace and platform use cases where the platform takes a configurable fee and pays out the remainder to the seller on each transaction.
 
