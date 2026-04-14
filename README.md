@@ -6,12 +6,18 @@ This project targets marketplace and platform use cases where the platform takes
 
 ## Available Implementations
 
-| Language | Framework | SDK | Port | Preview |
-|----------|-----------|-----|------|---------|
-| [**PHP**](./php/) | Built-in Server | globalpayments/php-sdk | 8003 | [Open in CodeSandbox](https://githubbox.com/globalpayments-samples/embedded-payments-fee-splitting/tree/main/php) |
-| [**Node.js**](./nodejs/) | Express.js | globalpayments-api | 8001 | [Open in CodeSandbox](https://githubbox.com/globalpayments-samples/embedded-payments-fee-splitting/tree/main/nodejs) |
-| [**.NET**](./dotnet/) | ASP.NET Core | GlobalPayments.Api | 8006 | [Open in CodeSandbox](https://githubbox.com/globalpayments-samples/embedded-payments-fee-splitting/tree/main/dotnet) |
-| [**Java**](./java/) | Jakarta Servlet | com.globalpayments:java-sdk | 8004 | [Open in CodeSandbox](https://githubbox.com/globalpayments-samples/embedded-payments-fee-splitting/tree/main/java) |
+| Language | Framework | SDK |
+|----------|-----------|-----|
+| [**PHP**](./php/) | Built-in Server | globalpayments/php-sdk |
+| [**Node.js**](./nodejs/) | Express.js | globalpayments-api |
+| [**.NET**](./dotnet/) | ASP.NET Core | GlobalPayments.Api |
+| [**Java**](./java/) | Jakarta Servlet | com.globalpayments:java-sdk |
+
+Preview links (runs in browser via CodeSandbox):
+- [PHP Preview](https://githubbox.com/globalpayments-samples/embedded-payments-fee-splitting/tree/main/php)
+- [Node.js Preview](https://githubbox.com/globalpayments-samples/embedded-payments-fee-splitting/tree/main/nodejs)
+- [.NET Preview](https://githubbox.com/globalpayments-samples/embedded-payments-fee-splitting/tree/main/dotnet)
+- [Java Preview](https://githubbox.com/globalpayments-samples/embedded-payments-fee-splitting/tree/main/java)
 
 ## How It Works
 
@@ -443,6 +449,16 @@ Requires .NET 9+. Confirm with `dotnet --version`. Run `dotnet restore` to pull 
 - [Global Payments Developer Portal](https://developer.globalpayments.com/)
 - [GP-API Documentation](https://developer.globalpayments.com/api/references-overview)
 - [Test Cards](https://developer.globalpayments.com/resources/test-cards)
+
+## Community
+
+- 🌐 **Developer Portal** — [developer.globalpayments.com](https://developer.globalpayments.com)
+- 💬 **Discord** — [Join the community](https://discord.gg/myER9G9qkc)
+- 📋 **GitHub Discussions** — [github.com/globalpayments-samples](https://github.com/globalpayments-samples)
+- 📧 **Newsletter** — [Subscribe](https://www.globalpayments.com/en-gb/modals/newsletter)
+- 💼 **LinkedIn** — [Global Payments for Developers](https://www.linkedin.com/showcase/global-payments-for-developers/posts/?feedView=all)
+
+Have a question or found a bug? [Open an issue](https://github.com/globalpayments-samples/embedded-payments-fee-splitting/issues) or reach out at [communityexperience@globalpay.com](mailto:communityexperience@globalpay.com).
 
 ## License
 
