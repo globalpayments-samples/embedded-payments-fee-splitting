@@ -42,6 +42,21 @@ Browser                          Backend                         GP-API
    │     splitDetails } ────────────│                               │
 ```
 
+### Fee Split Parties
+
+```mermaid
+sequenceDiagram
+    participant B as Browser (Customer)
+    participant P as Platform Backend
+    participant GP as GP API
+
+    B->>P: POST /process-embedded-payments-payment<br/>(card details, amount, seller_id, platform_fee_rate)
+    Note over P: Calculate fee split server-side:<br/>processingFee = (amount × 2.9%) + $0.30<br/>platformFee = amount × platform_fee_rate<br/>sellerPayout = amount − processingFee − platformFee
+    P->>GP: card.charge(amount) with GpApiConfig
+    GP-->>P: { transactionId, status: "CAPTURED" }
+    P-->>B: { transactionId, splitDetails: { processingFee, platformFee, sellerPayout } }
+```
+
 ## Fee Splitting
 
 Each transaction is split into three components, calculated server-side:
@@ -400,6 +415,14 @@ embedded-payments-fee-splitting/
     ├── .env.sample
     └── README.md
 ```
+
+## Features
+
+- Process GP-API payments with automatic fee splitting
+- Support for platform and processing fees
+- Fee calculation: `processingFee = (amount × 2.9%) + $0.30`, `platformFee = amount × platformFeeRate`
+- 4-language implementations (PHP, Node.js, .NET, Java)
+- Docker support
 
 ## Security Notes
 
