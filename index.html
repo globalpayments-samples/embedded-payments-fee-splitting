@@ -21,9 +21,9 @@
                     </picture>
                 </div>
                 <nav class="gp-header-nav">
-                    <a href="https://developer.globalpay.com/">Documentation</a>
-                    <a href="https://developer.globalpay.com/api/references-overview">API Reference</a>
-                    <a href="https://developer.globalpay.com/docs/integration-options/sdk/overview">SDKs</a>
+                    <a href="https://developer.globalpayments.com/">Documentation</a>
+                    <a href="https://developer.globalpayments.com/api/references-overview">API Reference</a>
+                    <a href="https://developer.globalpayments.com/docs/integration-options/sdk/overview">SDKs</a>
                 </nav>
             </div>
         </div>
@@ -52,13 +52,13 @@
                             Secure payment processing using Global Payments tokenization with client-side form validation.
                         </p>
                     </div>
-                    
+
                     <form id="payment-form" class="gp-form" action="/process-payment.php" method="POST">
                         <div class="gp-form-group">
                             <label for="amount" class="gp-label">Amount ($):</label>
                             <input type="number" id="amount" name="amount" class="gp-input" min="0.01" step="0.01" value="10.00" required>
                         </div>
-                        
+
                         <div class="gp-form-group">
                             <label for="billing_zip" class="gp-label">Billing Zip Code:</label>
                             <input type="text" id="billing_zip" name="billing_zip" class="gp-input" placeholder="12345" required>
@@ -85,7 +85,7 @@
                             Securely tokenize payment methods for future use without storing sensitive card data.
                         </p>
                     </div>
-                    
+
                     <div class="gp-alert gp-alert-info">
                         <strong>Info:</strong> Tokens can be stored securely and used for future transactions without handling raw card data.
                     </div>
@@ -117,13 +117,13 @@
                             Configure and test webhook endpoints for real-time payment notifications.
                         </p>
                     </div>
-                    
+
                     <div class="gp-code-block">
 // Example webhook handler
 app.post('/webhook', (req, res) => {
     const signature = req.headers['x-gp-signature'];
     const payload = req.body;
-    
+
     // Verify webhook signature
     if (verifySignature(payload, signature)) {
         handlePaymentEvent(payload);
@@ -149,14 +149,14 @@ app.post('/webhook', (req, res) => {
                             Set up subscription billing and recurring payment schedules.
                         </p>
                     </div>
-                    
+
                     <form id="recurring-form" class="gp-form">
                         <div class="gp-form-row">
                             <div class="gp-form-group">
                                 <label for="subscription-amount" class="gp-label">Monthly Amount ($):</label>
                                 <input type="number" id="subscription-amount" name="subscription-amount" class="gp-input" min="1.00" step="0.01" value="29.99" required>
                             </div>
-                            
+
                             <div class="gp-form-group">
                                 <label for="billing-cycle" class="gp-label">Billing Cycle:</label>
                                 <select id="billing-cycle" name="billing-cycle" class="gp-select" required>
@@ -182,7 +182,7 @@ app.post('/webhook', (req, res) => {
     </div>
 
     <!-- Footer -->
-    <!-- 
+    <!--
         DEVELOPER NOTE: Update the following footer information to match your business:
         - Company name and copyright year
         - Update all links to point to your actual Terms of Service, Privacy Policy, and Refund Policy pages

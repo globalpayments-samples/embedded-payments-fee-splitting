@@ -78,7 +78,7 @@ All four `.env.sample` files currently match. Backend code reads `GP_APP_ID`, `G
 | Successful Visa test card | `4263970000005262` | Shown in every frontend as the demo card and listed by Global Payments test-card docs for sandbox use. |
 | Successful Mastercard test card | `5425230000004415` | GP sandbox test card. |
 | Successful Amex test card | `374101000000608` | GP sandbox test card. |
-| Credentials source | `https://developer.globalpay.com/` | Create a developer app there to obtain `GP_APP_ID` and `GP_APP_KEY`. |
+| Credentials source | `https://developer.globalpayments.com/` | Create a developer app there to obtain `GP_APP_ID` and `GP_APP_KEY`. |
 
 ## Architecture Summary
 
