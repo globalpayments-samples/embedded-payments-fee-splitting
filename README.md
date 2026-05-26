@@ -175,7 +175,7 @@ Processes a charge and returns the transaction ID with a full fee split breakdow
 ```json
 {
   "card_name": "Jane Doe",
-  "card_number": "4263982640269299",
+  "card_number": "4263970000005262",
   "card_expiry": "12/26",
   "card_cvv": "123",
   "billing_zip": "12345",
@@ -352,8 +352,8 @@ Obtain credentials from your [Global Payments developer account](https://develop
 
 | Brand | Card Number | CVV | Expiry |
 |-------|-------------|-----|--------|
-| Visa | 4263982640269299 | 123 | Any future date |
-| Mastercard | 5425233424241200 | 123 | Any future date |
+| Visa | 4263970000005262 | 123 | Any future date |
+| Mastercard | 5425230000004415 | 123 | Any future date |
 | Discover | 6011000000000087 | 123 | Any future date |
 | Amex | 374101000000608 | 1234 | Any future date |
 
