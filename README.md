@@ -112,10 +112,9 @@ PLATFORM_FEE_RATE=10
 
 **PHP:**
 ```bash
-composer install
-php -S localhost:8000 router.php
-# Open http://localhost:8000
+./run.sh
 ```
+Open the local URL printed by the PHP server.
 
 **Node.js:**
 ```bash
