@@ -4,7 +4,7 @@ PHP implementation of embedded payments processing with automatic fee splitting 
 
 ## Requirements
 
-- PHP 8.0+
+- PHP 8.2.35+, 8.3.36+, 8.4.27+, 8.5.12+
 - Composer
 - Global Payments developer account with GP-API credentials
 
@@ -51,7 +51,7 @@ PLATFORM_FEE_RATE=10
 
 **3. Start the server**
 ```bash
-php -S localhost:8000 router.php
+./run.sh
 # Open http://localhost:8000
 ```
 
@@ -233,13 +233,13 @@ docker-compose up php
 All of `card_name`, `card_number`, `card_expiry`, `card_cvv`, `billing_zip`, `amount`, and `seller_id` are required. Missing any one will return 400 without hitting GP-API.
 
 **"Payment processing failed" — GP-API error**
-Confirm `GP_APP_ID` and `GP_APP_KEY` in `.env` match a valid TEST environment account. Use test card numbers — the TEST environment does not process real cards. Restart `php -S` after editing `.env`.
+Confirm `GP_APP_ID` and `GP_APP_KEY` in `.env` match a valid TEST environment account. Use test card numbers — the TEST environment does not process real cards. Restart `./run.sh` after editing `.env`.
 
 **Expiry date rejected**
 `card_expiry` must be `MM/YY` — two-digit month, slash, two-digit year. The backend prepends `20` to the year automatically. Formats like `1226` or `12/2026` will fail.
 
 **`composer install` fails**
-Requires PHP 8.0+ and Composer 2.x. Confirm with `php -v` and `composer --version`. Missing extensions `ext-curl` or `ext-json` will cause install failures — install via your OS package manager (e.g., `apt install php8-curl php8-json`).
+Requires a patched PHP release (8.2.35+, 8.3.36+, 8.4.27+, or 8.5.12+) and Composer 2.x. Confirm with `php -v` and `composer --version`. Missing extensions `ext-curl` or `ext-json` will cause install failures — install via your OS package manager (e.g., `apt install php8-curl php8-json`).
 
 **Seller payout is negative**
 If `platform_fee_rate` is set very high relative to a small amount, payout can go negative after the processing fee is deducted. Validate the fee rate range for API callers; the form enforces 5–25%.

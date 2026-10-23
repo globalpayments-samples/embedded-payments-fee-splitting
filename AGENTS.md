@@ -68,7 +68,7 @@ PORT=8000                  # local server port; Node.js and .NET read it directl
 PLATFORM_FEE_RATE=10.0     # present in every .env.sample, but currently unused by the request handlers
 ```
 
-All four `.env.sample` files currently match. Backend code reads `GP_APP_ID`, `GP_APP_KEY`, and `GP_API_ENVIRONMENT` everywhere; Node.js and .NET also read `PORT` directly, and PHP's `run.sh` uses `PORT` when starting `php -S`.
+All four `.env.sample` files currently match. Backend code reads `GP_APP_ID`, `GP_APP_KEY`, and `GP_API_ENVIRONMENT` everywhere; Node.js and .NET also read `PORT` directly, and PHP's `run.sh` uses `PORT` and `HOST` (default 127.0.0.1) when starting `php -S`.
 
 ## Sandbox Credentials
 
@@ -95,7 +95,7 @@ This is a demo, not a production-ready payment service. Card PAN, expiry, and CV
 ## How to Run
 
 ```bash
-cd php && ./run.sh       # PHP — :8000 via php -S 0.0.0.0:${PORT:-8000}
+cd php && ./run.sh       # PHP — :8000 (loopback by default, HOST=0.0.0.0 to expose)
 cd nodejs && ./run.sh    # Node.js — :8000 via process.env.PORT || 8000
 cd dotnet && ./run.sh    # .NET — :8000 via Environment.GetEnvironmentVariable("PORT") ?? "8000"
 cd java && ./run.sh      # Java — :8000 via cargo.servlet.port in java/pom.xml
