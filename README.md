@@ -82,7 +82,7 @@ The `platform_fee_rate` defaults to 10% but can be passed per-request (valid ran
 
 - Global Payments developer account
 - GP-API credentials (`GP_APP_ID` and `GP_APP_KEY`) from the [developer portal](https://developer.globalpayments.com/)
-- Docker, or runtime for your chosen language (PHP 8.2.35+/8.3.36+/8.4.27+/8.5.12+, Node.js 24+, .NET 10+, Java 17+)
+- Docker, or runtime for your chosen language (PHP 8.2.35+/8.3.36+/8.4.27+/8.5.12+, Node.js 24+, .NET 10+, Java 21+)
 
 ## Quick Start
 

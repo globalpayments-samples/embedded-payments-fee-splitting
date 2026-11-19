@@ -4,7 +4,7 @@ Jakarta EE/Servlet implementation of embedded payments processing with automatic
 
 ## Requirements
 
-- Java 17+
+- Java 21+
 - Maven 3.8+
 - Global Payments developer account with GP-API credentials
 
@@ -253,7 +253,7 @@ All of `card_name`, `card_number`, `card_expiry`, `card_cvv`, `billing_zip`, `am
 Confirm `GP_APP_ID` and `GP_APP_KEY` are exported as shell environment variables before running `mvn jetty:run`. System environment variables take precedence over `.env` values in Java. Use test card numbers — the TEST environment does not process real cards.
 
 **Maven build fails**
-Requires Java 17+ and Maven 3.8+. Confirm with `java -version` and `mvn -v`. If the `com.globalpayments:java-sdk` dependency fails to resolve, run `mvn clean package -U` to force a fresh dependency download.
+Requires Java 21+ and Maven 3.8+. Confirm with `java -version` and `mvn -v`. If the `com.globalpayments:java-sdk` dependency fails to resolve, run `mvn clean package -U` to force a fresh dependency download.
 
 **Port conflict on startup**
 The project configures Jetty to use port 8000. If that port is occupied, stop the conflicting process with `lsof -i :8000` or update the port configuration in `pom.xml` under the Jetty plugin settings.
