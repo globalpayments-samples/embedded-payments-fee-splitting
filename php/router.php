@@ -27,8 +27,16 @@ if (empty($path)) {
     return false;
 }
 
-// Serve static files directly (CSS, JS, images, fonts)
-$staticExtensions = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'ico', 'svg', 'woff', 'woff2', 'ttf', 'eot', 'otf'];
+// Never serve hidden files, vendor/ or node_modules/ (no .env, no dependency sources)
+if (preg_match('#(^|/)(\.|vendor/|node_modules/)#', rawurldecode($path))) {
+    http_response_code(404);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => false, 'message' => 'Not found']);
+    return true;
+}
+
+// Serve static files directly (HTML, CSS, JS, images, fonts)
+$staticExtensions = ['html', 'css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'ico', 'svg', 'woff', 'woff2', 'ttf', 'eot', 'otf'];
 $pathInfo = pathinfo($path);
 if (isset($pathInfo['extension']) && in_array(strtolower($pathInfo['extension']), $staticExtensions)) {
     if (file_exists($path)) {
