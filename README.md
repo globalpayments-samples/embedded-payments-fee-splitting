@@ -82,7 +82,7 @@ The `platform_fee_rate` defaults to 10% but can be passed per-request (valid ran
 
 - Global Payments developer account
 - GP-API credentials (`GP_APP_ID` and `GP_APP_KEY`) from the [developer portal](https://developer.globalpayments.com/)
-- Docker, or runtime for your chosen language (PHP 8.2.35+/8.3.36+/8.4.27+/8.5.12+, Node.js 18+, .NET 9+, Java 17+)
+- Docker, or runtime for your chosen language (PHP 8.2.35+/8.3.36+/8.4.27+/8.5.12+, Node.js 18+, .NET 10+, Java 17+)
 
 ## Quick Start
 
@@ -457,7 +457,7 @@ If `platform_fee_rate` is very high relative to a small amount, payout can go ne
 Jetty defaults to port 8080. The project run script maps to 8000. If 8080 is occupied, stop the conflicting process with `lsof -i :8080` or update the port in `pom.xml`.
 
 **`dotnet run` fails to resolve packages**
-Requires .NET 9+. Confirm with `dotnet --version`. Run `dotnet restore` to pull fresh packages. If `GlobalPayments.Api` fails to resolve, clear the NuGet cache: `dotnet nuget locals all --clear`.
+Requires .NET 10+. Confirm with `dotnet --version`. Run `dotnet restore` to pull fresh packages. If `GlobalPayments.Api` fails to resolve, clear the NuGet cache: `dotnet nuget locals all --clear`.
 
 ## Per-Language Documentation
 
