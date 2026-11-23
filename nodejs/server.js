@@ -8,6 +8,9 @@
 
 import express from 'express';
 import * as dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import {
     ServicesContainer,
     GpApiConfig,
@@ -29,6 +32,7 @@ dotenv.config();
  */
 const app = express();
 const port = process.env.PORT || 8000;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -179,8 +183,11 @@ app.post('/process-embedded-payments-payment', upload.none(), async (req, res) =
     }
 });
 
-// Serve static files - MUST come after API routes
-app.use(express.static('.'));
+// Serve only the frontend page, never the server's own files
+const indexHtml = readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+app.get(['/', '/index.html'], (req, res) => {
+    res.type('html').send(indexHtml);
+});
 
 // Start the server
 app.listen(port, '0.0.0.0', () => {

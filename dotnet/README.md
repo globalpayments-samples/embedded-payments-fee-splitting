@@ -4,7 +4,7 @@ ASP.NET Core implementation of embedded payments processing with automatic fee s
 
 ## Requirements
 
-- .NET 9.0+
+- .NET 10.0+
 - Global Payments developer account with GP-API credentials
 
 ## Project Structure
@@ -246,7 +246,7 @@ Confirm `GP_APP_ID` and `GP_APP_KEY` in `.env` are valid TEST credentials. The S
 The frontend is served from `wwwroot/`. Ensure `app.UseStaticFiles()` and `app.UseDefaultFiles()` are both present in `Program.cs` and that `wwwroot/index.html` exists.
 
 **`dotnet run` fails to resolve packages**
-Requires .NET 9.0+. Confirm with `dotnet --version`. Run `dotnet restore` to pull fresh packages. If `GlobalPayments.Api` fails, clear the NuGet cache: `dotnet nuget locals all --clear`.
+Requires .NET 10.0+. Confirm with `dotnet --version`. Run `dotnet restore` to pull fresh packages. If `GlobalPayments.Api` fails, clear the NuGet cache: `dotnet nuget locals all --clear`.
 
 **Expiry date rejected**
 `card_expiry` must be `MM/YY` — two digits, slash, two digits. The backend splits on `/` and prepends `20` to the year. Formats like `12/2026` or `1226` will fail parsing.

@@ -4,7 +4,7 @@ Node.js/Express implementation of embedded payments processing with automatic fe
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 24+
 - npm
 - Global Payments developer account with GP-API credentials
 
@@ -246,7 +246,7 @@ All of `card_name`, `card_number`, `card_expiry`, `card_cvv`, `billing_zip`, `am
 Confirm `GP_APP_ID` and `GP_APP_KEY` in `.env` are for the TEST environment. Restart the server after editing `.env` — environment variables are read at boot. Check the console for the full error message from GP-API.
 
 **`import` syntax error on startup**
-The project uses ES module syntax. Confirm `"type": "module"` is present in `package.json` and you are running Node.js 18+. Check with `node --version`.
+The project uses ES module syntax. Confirm `"type": "module"` is present in `package.json` and you are running Node.js 24+. Check with `node --version`.
 
 **Expiry date rejected**
 `card_expiry` must be `MM/YY` with a forward slash. The backend splits on `/` — formats without it will return a 400 validation error.
