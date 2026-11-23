@@ -10,6 +10,7 @@ import express from 'express';
 import * as dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 import {
     ServicesContainer,
     GpApiConfig,
@@ -183,8 +184,9 @@ app.post('/process-embedded-payments-payment', upload.none(), async (req, res) =
 });
 
 // Serve only the frontend page, never the server's own files
+const indexHtml = readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 app.get(['/', '/index.html'], (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.type('html').send(indexHtml);
 });
 
 // Start the server
