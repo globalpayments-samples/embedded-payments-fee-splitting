@@ -101,7 +101,13 @@ app.post('/process-embedded-payments-payment', upload.none(), async (req, res) =
         }
 
         const seller = SellerManager.getSellerById(seller_id);
-        const platformFeeRate = platform_fee_rate ? parseFloat(platform_fee_rate) : 10.0;
+        const platformFeeRate = Number(platform_fee_rate || process.env.PLATFORM_FEE_RATE || 10);
+        if (!Number.isFinite(platformFeeRate) || platformFeeRate < 5 || platformFeeRate > 25) {
+            return res.status(400).json({
+                success: false,
+                message: 'Platform fee must be between 5% and 25%'
+            });
+        }
 
         // Calculate split
         const calculator = new SplitCalculator(platformFeeRate);

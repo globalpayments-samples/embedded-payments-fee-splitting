@@ -102,8 +102,14 @@ try {
     $address->postalCode = Utils::sanitizePostalCode($_POST['billing_zip']);
 
     // Calculate fee split
-    $platformFeeRate = floatval($_POST['platform_fee_rate'] ?? 10.0);
-    $calculator = new SplitCalculator($platformFeeRate);
+    $platformFeeRate = $_POST['platform_fee_rate'] ?? '';
+    if ($platformFeeRate === '') {
+        $platformFeeRate = $_ENV['PLATFORM_FEE_RATE'] ?? '10';
+    }
+    if (!is_numeric($platformFeeRate) || $platformFeeRate < 5 || $platformFeeRate > 25) {
+        throw new ApiException('Platform fee must be between 5% and 25%');
+    }
+    $calculator = new SplitCalculator((float) $platformFeeRate);
     $splitDetails = $calculator->calculateSplit($amount);
 
     // Add seller information to split details
@@ -187,7 +193,7 @@ try {
         ]
     ]);
     exit;
-} catch (\Exception $e) {
+} catch (\Throwable $e) {
     // Log general error information
     error_log('=== General Server Error ===');
     error_log('Error Type: ' . get_class($e));
