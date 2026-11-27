@@ -11,7 +11,7 @@ This project targets marketplace and platform use cases where the platform takes
 | [**PHP**](./php/) | Built-in Server | globalpayments/php-sdk |
 | [**Node.js**](./nodejs/) | Express.js | globalpayments-api |
 | [**.NET**](./dotnet/) | ASP.NET Core | GlobalPayments.Api |
-| [**Java**](./java/) | Jakarta Servlet | com.globalpayments:java-sdk |
+| [**Java**](./java/) | Jakarta Servlet | com.heartlandpaymentsystems:globalpayments-sdk |
 
 Preview links (runs in browser via CodeSandbox):
 - [PHP Preview](https://githubbox.com/globalpayments-samples/embedded-payments-fee-splitting/tree/main/php)
@@ -76,7 +76,7 @@ The `platform_fee_rate` defaults to 10% but can be passed per-request (valid ran
 | Fixed platform fee | Set `PLATFORM_FEE_RATE=10` in `.env` |
 | Per-transaction rate | Pass `platform_fee_rate` in request body |
 | Marketplace checkout | Populate `seller_id` from seller list |
-| Platform as primary | Keep seller list in `data/sellers.json` |
+| Platform as primary | Keep seller list in `data/mock-sellers.json` |
 
 ## Prerequisites
 
@@ -130,7 +130,7 @@ dotnet restore && dotnet run
 
 **Java:**
 ```bash
-mvn clean package && mvn jetty:run
+mvn clean package cargo:run
 # Open http://localhost:8000
 ```
 
@@ -182,7 +182,7 @@ Processes a charge and returns the transaction ID with a full fee split breakdow
 | `card_cvv` | string | yes | CVV / security code |
 | `billing_zip` | string | yes | Billing postal code |
 | `amount` | string | yes | Transaction amount (minimum `"0.50"`) |
-| `seller_id` | string | yes | Seller identifier (must match a record in `data/sellers.json`) |
+| `seller_id` | string | yes | Seller identifier (must match a record in `data/mock-sellers.json`) |
 | `platform_fee_rate` | float | no | Platform fee percentage 5–25 (default: env `PLATFORM_FEE_RATE` or `10`) |
 
 **Example request:**
@@ -385,14 +385,14 @@ embedded-payments-fee-splitting/
 │   ├── router.php
 │   ├── composer.json
 │   ├── lib/                # SellerManager, SplitCalculator, Utils
-│   ├── data/               # sellers.json
+│   ├── data/               # mock-sellers.json
 │   ├── .env.sample
 │   └── README.md
 ├── nodejs/                 # Node.js implementation (Docker: 8001)
 │   ├── server.js
 │   ├── package.json
 │   ├── lib/                # SellerManager.js, SplitCalculator.js
-│   ├── data/               # sellers.json
+│   ├── data/               # mock-sellers.json
 │   ├── .env.sample
 │   └── README.md
 ├── dotnet/                 # .NET implementation (Docker: 8006)
@@ -400,7 +400,7 @@ embedded-payments-fee-splitting/
 │   ├── *.csproj
 │   ├── Services/           # SellerManager, SplitCalculator
 │   ├── Models/             # Seller, SplitDetails
-│   ├── data/               # sellers.json
+│   ├── data/               # mock-sellers.json
 │   ├── .env.sample
 │   └── README.md
 └── java/                   # Java implementation (Docker: 8004)
@@ -409,7 +409,7 @@ embedded-payments-fee-splitting/
     │       ├── ProcessPaymentServlet.java
     │       ├── services/   # SellerManager, SplitCalculator
     │       └── models/     # Seller, SplitDetails
-    ├── data/               # sellers.json
+    ├── data/               # mock-sellers.json
     ├── pom.xml
     ├── .env.sample
     └── README.md
@@ -436,7 +436,7 @@ For production use:
 ## Troubleshooting
 
 **"Invalid seller selected" (400)**
-`seller_id` must exactly match a key in `data/sellers.json`. Use the seller dropdown in the form, which is populated from the configured seller list.
+`seller_id` must exactly match a key in `data/mock-sellers.json`. Use the seller dropdown in the form, which is populated from the configured seller list.
 
 **"Amount must be at least $0.50" (400)**
 GP-API enforces a minimum charge of $0.50. Confirm the `amount` field is ≥ 0.50.
@@ -453,8 +453,8 @@ Confirm `GP_APP_ID` and `GP_APP_KEY` are set correctly for the TEST environment.
 **Seller payout is negative**
 If `platform_fee_rate` is very high relative to a small amount, payout can go negative after fees. The fee rate is capped at 25% in the form, but validate server-side for direct API callers.
 
-**`mvn jetty:run` port conflict (Java)**
-Jetty defaults to port 8080. The project run script maps to 8000. If 8080 is occupied, stop the conflicting process with `lsof -i :8080` or update the port in `pom.xml`.
+**Port conflict (Java)**
+The Java server runs on embedded Tomcat through the Cargo plugin on port 8000. If 8000 is occupied, stop the conflicting process with `lsof -i :8000` or change `cargo.servlet.port` in `pom.xml`.
 
 **`dotnet run` fails to resolve packages**
 Requires .NET 10+. Confirm with `dotnet --version`. Run `dotnet restore` to pull fresh packages. If `GlobalPayments.Api` fails to resolve, clear the NuGet cache: `dotnet nuget locals all --clear`.

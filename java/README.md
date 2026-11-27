@@ -26,8 +26,8 @@ java/
 │           ├── index.html                  # Payment form frontend
 │           └── WEB-INF/web.xml             # Servlet configuration
 ├── data/
-│   └── sellers.json                        # Mock seller registry
-├── pom.xml                                 # com.globalpayments:java-sdk dependency
+│   └── mock-sellers.json                        # Mock seller registry
+├── pom.xml                                 # com.heartlandpaymentsystems:globalpayments-sdk dependency
 ├── .env.sample
 ├── Dockerfile
 ├── run.sh
@@ -57,7 +57,7 @@ PLATFORM_FEE_RATE=10
 
 **3. Start the server**
 ```bash
-mvn jetty:run
+mvn clean package cargo:run
 # Open http://localhost:8000
 ```
 
@@ -79,7 +79,7 @@ Export credentials before running:
 ```bash
 export GP_APP_ID=your_app_id
 export GP_APP_KEY=your_app_key
-mvn jetty:run
+mvn clean package cargo:run
 ```
 
 ## SDK Configuration
@@ -118,7 +118,7 @@ Processes a charge and returns a transaction ID with fee split breakdown.
 | `card_cvv` | string | yes | CVV / security code |
 | `billing_zip` | string | yes | Billing postal code |
 | `amount` | string | yes | Amount (minimum `"0.50"`) |
-| `seller_id` | string | yes | Seller ID from `data/sellers.json` |
+| `seller_id` | string | yes | Seller ID from `data/mock-sellers.json` |
 | `platform_fee_rate` | double | no | Platform fee % 5–25 (default: env value or `10`) |
 
 **Example request:**
@@ -244,19 +244,19 @@ docker-compose up java
 ## Troubleshooting
 
 **"Invalid seller selected" (400)**
-`seller_id` must match an entry in `data/sellers.json`. The form populates the seller dropdown automatically — direct API callers must use exact seller IDs from the file.
+`seller_id` must match an entry in `data/mock-sellers.json`. The form populates the seller dropdown automatically — direct API callers must use exact seller IDs from the file.
 
 **"Missing required fields" (400)**
 All of `card_name`, `card_number`, `card_expiry`, `card_cvv`, `billing_zip`, `amount`, and `seller_id` are required. Confirm all fields are present in the JSON request body.
 
 **"Payment processing failed" — GP-API error**
-Confirm `GP_APP_ID` and `GP_APP_KEY` are exported as shell environment variables before running `mvn jetty:run`. System environment variables take precedence over `.env` values in Java. Use test card numbers — the TEST environment does not process real cards.
+Confirm `GP_APP_ID` and `GP_APP_KEY` are exported as shell environment variables before running `mvn clean package cargo:run`. System environment variables take precedence over `.env` values in Java. Use test card numbers — the TEST environment does not process real cards.
 
 **Maven build fails**
-Requires Java 21+ and Maven 3.8+. Confirm with `java -version` and `mvn -v`. If the `com.globalpayments:java-sdk` dependency fails to resolve, run `mvn clean package -U` to force a fresh dependency download.
+Requires Java 21+ and Maven 3.8+. Confirm with `java -version` and `mvn -v`. If the `com.heartlandpaymentsystems:globalpayments-sdk` dependency fails to resolve, run `mvn clean package -U` to force a fresh dependency download.
 
 **Port conflict on startup**
-The project configures Jetty to use port 8000. If that port is occupied, stop the conflicting process with `lsof -i :8000` or update the port configuration in `pom.xml` under the Jetty plugin settings.
+The Cargo plugin runs embedded Tomcat on port 8000. If that port is occupied, stop the conflicting process with `lsof -i :8000` or change `cargo.servlet.port` in `pom.xml`.
 
 **Expiry date rejected**
 `card_expiry` must be `MM/YY` — two digits, slash, two digits. The backend splits on `/` and prepends `20` to the year. Formats like `12/2026` or `1226` will fail parsing.

@@ -21,7 +21,7 @@ dotnet/
 │   ├── Seller.cs           # Seller entity
 │   └── SplitDetails.cs     # Fee split result model
 ├── data/
-│   └── sellers.json        # Mock seller registry
+│   └── mock-sellers.json        # Mock seller registry
 ├── *.csproj                # GlobalPayments.Api + dotenv.net
 ├── appsettings.json
 ├── .env.sample
@@ -108,7 +108,7 @@ Processes a charge and returns a transaction ID with fee split breakdown.
 | `card_cvv` | string | yes | CVV / security code |
 | `billing_zip` | string | yes | Billing postal code |
 | `amount` | string | yes | Amount (minimum `"0.50"`) |
-| `seller_id` | string | yes | Seller ID from `data/sellers.json` |
+| `seller_id` | string | yes | Seller ID from `data/mock-sellers.json` |
 | `platform_fee_rate` | decimal | no | Platform fee % 5–25 (default: env value or `10`) |
 
 **Example request:**
@@ -234,7 +234,7 @@ docker-compose up dotnet
 ## Troubleshooting
 
 **"Invalid seller selected" (400)**
-`seller_id` must match an entry in `data/sellers.json`. The form populates the seller dropdown automatically — direct API callers must use exact seller IDs.
+`seller_id` must match an entry in `data/mock-sellers.json`. The form populates the seller dropdown automatically — direct API callers must use exact seller IDs.
 
 **"Missing required fields" (400)**
 All of `card_name`, `card_number`, `card_expiry`, `card_cvv`, `billing_zip`, `amount`, and `seller_id` are required. Confirm all fields are included in the request body.
