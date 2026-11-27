@@ -227,7 +227,7 @@ docker-compose up php
 ## Troubleshooting
 
 **"Invalid seller selected" (400)**
-`seller_id` must match a key in `data/mock-sellers.json`. The payment form populates the dropdown automatically — manually submitted requests must use exact seller IDs from the file.
+`seller_id` must match a key in `data/mock-sellers.json`. The payment form populates the dropdown automatically, so manually submitted requests must use exact seller IDs from the file.
 
 **"Missing required fields" (400)**
 All of `card_name`, `card_number`, `card_expiry`, `card_cvv`, `billing_zip`, `amount`, and `seller_id` are required. Missing any one will return 400 without hitting GP-API.

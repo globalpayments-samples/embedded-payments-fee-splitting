@@ -244,13 +244,13 @@ docker-compose up java
 ## Troubleshooting
 
 **"Invalid seller selected" (400)**
-`seller_id` must match an entry in `data/mock-sellers.json`. The form populates the seller dropdown automatically — direct API callers must use exact seller IDs from the file.
+`seller_id` must match an entry in `data/mock-sellers.json`. The form populates the seller dropdown automatically, so direct API callers must use exact seller IDs from the file.
 
 **"Missing required fields" (400)**
 All of `card_name`, `card_number`, `card_expiry`, `card_cvv`, `billing_zip`, `amount`, and `seller_id` are required. Confirm all fields are present in the JSON request body.
 
 **"Payment processing failed" — GP-API error**
-Confirm `GP_APP_ID` and `GP_APP_KEY` are exported as shell environment variables before running `mvn clean package cargo:run`. System environment variables take precedence over `.env` values in Java. Use test card numbers — the TEST environment does not process real cards.
+Confirm `GP_APP_ID` and `GP_APP_KEY` are exported as shell environment variables before running `mvn clean package cargo:run`. System environment variables take precedence over `.env` values in Java. Use test card numbers, the TEST environment does not process real cards.
 
 **Maven build fails**
 Requires Java 21+ and Maven 3.8+. Confirm with `java -version` and `mvn -v`. If the `com.heartlandpaymentsystems:globalpayments-sdk` dependency fails to resolve, run `mvn clean package -U` to force a fresh dependency download.

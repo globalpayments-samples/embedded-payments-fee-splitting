@@ -237,7 +237,7 @@ docker-compose up nodejs
 ## Troubleshooting
 
 **"Invalid seller selected" (400)**
-`seller_id` must match a key in `data/mock-sellers.json`. The payment form populates the seller dropdown automatically — direct API callers must use exact seller IDs from the file.
+`seller_id` must match a key in `data/mock-sellers.json`. The payment form populates the seller dropdown automatically, so direct API callers must use exact seller IDs from the file.
 
 **"Missing required fields" (400)**
 All of `card_name`, `card_number`, `card_expiry`, `card_cvv`, `billing_zip`, `amount`, and `seller_id` are required. The endpoint accepts both JSON body and `multipart/form-data`.
