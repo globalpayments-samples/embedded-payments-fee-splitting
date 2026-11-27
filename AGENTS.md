@@ -5,7 +5,7 @@
 ## Critical Patterns
 
 1. **Use GP-API app credentials, not the root Docker keys.** All four backends configure `GpApiConfig`/the GP-API SDK with `GP_APP_ID` and `GP_APP_KEY` (`php/process-embedded-payments-payment.php` via `configureSdk()`, `nodejs/server.js`, `dotnet/Program.cs` via `ConfigureGlobalPaymentsSDK()`, `java/src/main/java/com/globalpayments/example/ProcessPaymentServlet.java` via `init()`). The root [`docker-compose.yml`](docker-compose.yml) still references `PUBLIC_API_KEY`/`SECRET_API_KEY`, `/config` health checks, and missing `python/` and `go/` services, so treat it as stale until it is repaired.
-2. **`platform_fee_rate` is request-driven; `PLATFORM_FEE_RATE` is not wired up.** Every backend falls back to `10.0` in code when the request omits `platform_fee_rate`, but none of the runtime handlers read `PLATFORM_FEE_RATE` from the environment. If you change the default split, update all four handlers and their docs together.
+2. **`platform_fee_rate` comes from the request, `PLATFORM_FEE_RATE` is the default.** When the request omits `platform_fee_rate`, every backend uses `PLATFORM_FEE_RATE` from the environment, then `10`. A rate that is not a number or is outside 5 to 25 is rejected with a 400 before the card is charged. If you change the default split, update all four handlers and their docs together.
 3. **Seller IDs live in two places.** Each frontend hardcodes the seller dropdown in `loadSellers()` (`php/index.html`, `nodejs/index.html`, `dotnet/wwwroot/index.html`, `java/src/main/webapp/index.html`), while each backend validates against `data/mock-sellers.json` through `SellerManager`. If you add or rename a seller in only one place, checkout succeeds in the UI but the POST fails with `Invalid seller selected`.
 4. **Duplicate-submit behavior is inconsistent today.** Node.js, .NET, and Java call `.withAllowDuplicates(true)` before `execute()`, but PHP does not. If you are comparing implementations or trying to make repeated identical test charges succeed everywhere, align the PHP handler with the others first.
 
@@ -65,7 +65,7 @@ GP_APP_ID=...              # required in all languages; GP-API app ID from the d
 GP_APP_KEY=...             # required in all languages; GP-API app key from the developer portal
 GP_API_ENVIRONMENT=TEST    # optional; any value other than PRODUCTION resolves to the test environment
 PORT=8000                  # local server port; Node.js and .NET read it directly, and PHP's run.sh also honors it
-PLATFORM_FEE_RATE=10.0     # present in every .env.sample, but currently unused by the request handlers
+PLATFORM_FEE_RATE=10.0     # default platform fee when the request has no platform_fee_rate
 ```
 
 All four `.env.sample` files currently match. Backend code reads `GP_APP_ID`, `GP_APP_KEY`, and `GP_API_ENVIRONMENT` everywhere; Node.js and .NET also read `PORT` directly, and PHP's `run.sh` uses `PORT` and `HOST` (default 127.0.0.1) when starting `php -S`.
