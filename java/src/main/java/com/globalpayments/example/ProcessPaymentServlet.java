@@ -22,6 +22,8 @@ import com.globalpayments.example.services.SellerManager;
 import com.globalpayments.example.services.SplitCalculator;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.Locale;
+import org.json.JSONObject;
 
 /**
  * Embedded Payments Processing Servlet
@@ -146,7 +148,20 @@ public class ProcessPaymentServlet extends HttpServlet {
             }
 
             Seller seller = SellerManager.getSellerById(sellerId);
-            double platformFeeRate = feeRateStr != null ? Double.parseDouble(feeRateStr) : 10.0;
+            if (feeRateStr == null || feeRateStr.trim().isEmpty()) {
+                feeRateStr = dotenv.get("PLATFORM_FEE_RATE", "10");
+            }
+            double platformFeeRate;
+            try {
+                platformFeeRate = Double.parseDouble(feeRateStr.trim());
+            } catch (NumberFormatException e) {
+                platformFeeRate = Double.NaN;
+            }
+            if (!(platformFeeRate >= 5 && platformFeeRate <= 25)) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().write("{\"success\":false,\"message\":\"Platform fee must be between 5% and 25%\"}");
+                return;
+            }
 
             // Calculate split
             SplitCalculator calculator = new SplitCalculator(platformFeeRate);
@@ -162,8 +177,16 @@ public class ProcessPaymentServlet extends HttpServlet {
                 return;
             }
 
-            Integer expiryMonth = Integer.parseInt(expiryParts[0]);
-            Integer expiryYear = Integer.parseInt("20" + expiryParts[1]);
+            Integer expiryMonth;
+            Integer expiryYear;
+            try {
+                expiryMonth = Integer.parseInt(expiryParts[0]);
+                expiryYear = Integer.parseInt("20" + expiryParts[1]);
+            } catch (NumberFormatException e) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().write("{\"success\":false,\"message\":\"Invalid expiry date format. Use MM/YY\"}");
+                return;
+            }
 
             // Initialize payment data with card details
             CreditCardData card = new CreditCardData();
@@ -185,20 +208,20 @@ public class ProcessPaymentServlet extends HttpServlet {
 
             if (!"00".equals(transaction.getResponseCode()) && !"SUCCESS".equals(transaction.getResponseCode())) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                String errorResponse = String.format(
-                    "{\"success\":false,\"message\":\"Payment processing failed\",\"error\":{\"code\":\"PAYMENT_DECLINED\",\"details\":\"%s\"}}",
-                    transaction.getResponseMessage()
+                String errorResponse = String.format(Locale.ROOT,
+                    "{\"success\":false,\"message\":\"Payment processing failed\",\"error\":{\"code\":\"PAYMENT_DECLINED\",\"details\":%s}}",
+                    JSONObject.quote(transaction.getResponseMessage())
                 );
                 response.getWriter().write(errorResponse);
                 return;
             }
 
             // Return success response with split details
-            String successResponse = String.format(
+            String successResponse = String.format(Locale.ROOT,
                 "{\"success\":true,\"message\":\"Payment successful! Transaction ID: %s\",\"data\":{\"transactionId\":\"%s\",\"amount\":%s,\"currency\":\"USD\",\"splitDetails\":{\"amount\":%.2f,\"processingFee\":%.2f,\"processingFeeRate\":%.2f,\"processingFeeFixed\":%.2f,\"platformFee\":%.2f,\"platformFeeRate\":%.2f,\"sellerPayout\":%.2f,\"sellerId\":\"%s\",\"sellerName\":\"%s\"}}}",
                 transaction.getTransactionId(),
                 transaction.getTransactionId(),
-                amountStr,
+                amount.toPlainString(),
                 splitDetails.getAmount(),
                 splitDetails.getProcessingFee(),
                 splitDetails.getProcessingFeeRate(),
@@ -213,16 +236,16 @@ public class ProcessPaymentServlet extends HttpServlet {
 
         } catch (ApiException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            String errorResponse = String.format(
-                "{\"success\":false,\"message\":\"Payment processing failed\",\"error\":{\"code\":\"API_ERROR\",\"details\":\"%s\"}}",
-                e.getMessage()
+            String errorResponse = String.format(Locale.ROOT,
+                "{\"success\":false,\"message\":\"Payment processing failed\",\"error\":{\"code\":\"API_ERROR\",\"details\":%s}}",
+                JSONObject.quote(e.getMessage())
             );
             response.getWriter().write(errorResponse);
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            String errorResponse = String.format(
-                "{\"success\":false,\"message\":\"Internal server error\",\"error\":{\"code\":\"SERVER_ERROR\",\"details\":\"%s\"}}",
-                e.getMessage()
+            String errorResponse = String.format(Locale.ROOT,
+                "{\"success\":false,\"message\":\"Internal server error\",\"error\":{\"code\":\"SERVER_ERROR\",\"details\":%s}}",
+                JSONObject.quote(e.getMessage())
             );
             response.getWriter().write(errorResponse);
         }

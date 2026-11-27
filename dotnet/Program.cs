@@ -160,10 +160,18 @@ public class Program
 
             var seller = SellerManager.GetSellerById(sellerId);
 
-            // Parse platform fee rate (default to 10.0 if not provided)
-            if (!double.TryParse(platformFeeRateStr, out var platformFeeRate))
+            // Parse platform fee rate (default to PLATFORM_FEE_RATE, then 10, if not provided)
+            if (string.IsNullOrEmpty(platformFeeRateStr))
             {
-                platformFeeRate = 10.0;
+                platformFeeRateStr = string.IsNullOrEmpty(GetEnvVar("PLATFORM_FEE_RATE")) ? "10" : GetEnvVar("PLATFORM_FEE_RATE");
+            }
+            if (!double.TryParse(platformFeeRateStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var platformFeeRate)
+                || platformFeeRate < 5 || platformFeeRate > 25)
+            {
+                return Results.BadRequest(new {
+                    success = false,
+                    message = "Platform fee must be between 5% and 25%"
+                });
             }
 
             // Calculate fee split
@@ -174,16 +182,15 @@ public class Program
 
             // Parse expiry date (MM/YY format)
             var expiryParts = cardExpiry.Split('/');
-            if (expiryParts.Length != 2)
+            if (expiryParts.Length != 2
+                || !int.TryParse(expiryParts[0], out var expiryMonth)
+                || !int.TryParse("20" + expiryParts[1], out var expiryYear))
             {
                 return Results.BadRequest(new {
                     success = false,
                     message = "Invalid expiry date format. Use MM/YY"
                 });
             }
-
-            var expiryMonth = int.Parse(expiryParts[0].PadLeft(2, '0'));
-            var expiryYear = int.Parse("20" + expiryParts[1]);
 
             // Initialize payment data with card details
             var card = new CreditCardData
