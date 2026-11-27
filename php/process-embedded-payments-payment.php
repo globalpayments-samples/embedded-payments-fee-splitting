@@ -45,13 +45,14 @@ ini_set('display_errors', '0');
  */
 function configureSdk(): void
 {
+    // .env is optional, the variables can also come from the environment (Docker)
     $dotenv = Dotenv::createImmutable(__DIR__);
-    $dotenv->load();
+    $dotenv->safeLoad();
 
     $config = new GpApiConfig();
     $config->appId = $_ENV['GP_APP_ID'];
     $config->appKey = $_ENV['GP_APP_KEY'];
-    $config->environment = $_ENV['GP_API_ENVIRONMENT'] === 'PRODUCTION'
+    $config->environment = ($_ENV['GP_API_ENVIRONMENT'] ?? '') === 'PRODUCTION'
         ? Environment::PRODUCTION
         : Environment::TEST;
     $config->channel = Channel::CardNotPresent;
