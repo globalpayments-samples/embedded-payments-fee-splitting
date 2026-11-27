@@ -64,15 +64,6 @@ function configureSdk(): void
 // Initialize SDK configuration
 configureSdk();
 
-// DEBUG: Log credential verification (REMOVE IN PRODUCTION)
-error_log('=== GP API Configuration Debug ===');
-error_log('APP_ID loaded: ' . (isset($_ENV['GP_APP_ID']) ? 'YES' : 'NO'));
-error_log('APP_ID value: ' . ($_ENV['GP_APP_ID'] ?? 'NOT_SET'));
-error_log('APP_KEY loaded: ' . (isset($_ENV['GP_APP_KEY']) ? 'YES' : 'NO'));
-error_log('APP_KEY length: ' . (isset($_ENV['GP_APP_KEY']) ? strlen($_ENV['GP_APP_KEY']) : 0));
-error_log('Environment: ' . ($_ENV['GP_API_ENVIRONMENT'] ?? 'NOT_SET'));
-error_log('==================================');
-
 // Set response content type to JSON
 header('Content-Type: application/json');
 

@@ -90,7 +90,7 @@ All four `.env.sample` files currently match. Backend code reads `GP_APP_ID`, `G
 
 ## Security Notes
 
-This is a demo, not a production-ready payment service. Card PAN, expiry, and CVV are posted directly to the backend, so PCI scope is larger than with tokenization or hosted fields. There is no auth layer, seller storage is flat JSON, and the PHP implementation currently logs credential metadata on every request plus the card BIN on errors in [`php/process-embedded-payments-payment.php`](php/process-embedded-payments-payment.php).
+This is a demo, not a production-ready payment service. Card PAN, expiry, and CVV are posted directly to the backend, so PCI scope is larger than with tokenization or hosted fields. There is no auth layer, seller storage is flat JSON, and the PHP implementation logs the card BIN on errors in [`php/process-embedded-payments-payment.php`](php/process-embedded-payments-payment.php).
 
 ## How to Run
 
