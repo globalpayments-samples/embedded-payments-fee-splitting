@@ -189,6 +189,14 @@ app.get(['/', '/index.html'], (req, res) => {
     res.type('html').send(indexHtml);
 });
 
+// A bad multipart body gets a JSON 400 instead of Express's error page with the stack trace
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        return res.status(400).json({ success: false, message: 'Invalid form data' });
+    }
+    next(err);
+});
+
 // Start the server
 app.listen(port, '0.0.0.0', () => {
     console.log(`Server running at http://localhost:${port}`);
